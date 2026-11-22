@@ -1,0 +1,27 @@
+[project]
+name = "farumasi-rl-summative"
+version = "0.1.0"
+description = "Mission-based RL for FARUMASI pharmacy shift dispatch: DQN, REINFORCE, PPO, and A2C"
+readme = "README.md"
+authors = [
+    { name = "Emmanuel Nsabagasani", email = "e.nsabagasa@alustudent.com" },
+]
+requires-python = ">=3.12"
+dependencies = [
+    "gymnasium>=1.0.0",
+    "pygame>=2.6.0",
+    "numpy>=1.26",
+    "matplotlib>=3.8",
+    "torch>=2.4",
+    "tensordict>=0.6",
+    "torchrl>=0.6",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
