@@ -2,7 +2,7 @@
 
 Every run uses the same environment, the same training seed, and the same
 frame budget. Only the values in these tables change. That is what makes the
-comparison in the report attributable to the setting rather than to a lucky shift.
+comparison in the report attributable to the setting rather than to a lucky delivery.
 """
 
 from __future__ import annotations

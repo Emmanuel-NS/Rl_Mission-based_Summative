@@ -1,42 +1,55 @@
-"""Play the trained FARUMASI dispatcher in the shift window.
+"""Watch a FARUMASI rider deliver medicine across Kigali.
 
-    uv run python play.py
+    uv run python play.py --heuristic --episodes 3 --seed 0
     uv run python play.py --episodes 3 --seed 1000
-    uv run python play.py --heuristic
 """
 
 from __future__ import annotations
 
 import argparse
-import json
 
 from environment.baselines import heuristic_action
-from environment.custom_env import FarumasiShiftEnv
+from environment.custom_env import FarumasiRiderEnv
 from training.common import load_checkpoint, resolve_device, run_episode
+
+
+def print_step(step: int, reward: float, info: dict) -> None:
+    decision = info["decision"]
+    print(
+        f"{step:02d}  {decision['action_label']:<26} {info['event']:<22} "
+        f"reward {reward:+7.2f}  total {info['shift_return']:+7.2f}  "
+        f"{info['minutes']:>4.0f} min  box {info['condition']:.0%}  {decision['pharmacy_name']}",
+        flush=True,
+    )
+
+
+def print_result(outcome: str, minutes: float, total: float) -> None:
+    words = {
+        "delivered": "DELIVERED. QR scanned, medicine in the patient's hands",
+        "returned": "RETURNED. Wrong prescription went back to the pharmacy",
+        "violation": "FAILED. Medicine handed over without a valid prescription",
+        "ruined": "FAILED. The medicine was ruined by rain",
+        "cancelled": "FAILED. The patient cancelled: too late",
+        "abandoned": "FAILED. Delivery abandoned",
+    }
+    print(f"{words.get(outcome, outcome)}   {minutes:.0f} min   return {total:+.2f}", flush=True)
 
 
 def play_heuristic(episodes: int, seed: int) -> None:
     for episode in range(episodes):
-        env = FarumasiShiftEnv(render_mode="human")
+        env = FarumasiRiderEnv(render_mode="human")
         env.reset(seed=seed + episode)
         done = False
         step = 0
-        print(f"\n=== heuristic episode {episode + 1}  seed {seed + episode} ===")
+        print(f"\n=== rider episode {episode + 1}  seed {seed + episode}  {env.dest.name} ===", flush=True)
         while not done:
             action = heuristic_action(env)
             _observation, reward, terminated, truncated, info = env.step(action)
+            print_step(step, reward, info)
             env.render()
-            decision = info["decision"]
-            print(
-                f"{step:02d}  {info['event']:<18} reward {reward:+7.2f}  "
-                f"return {info['shift_return']:+7.2f}  {json.dumps(decision)}"
-            )
             done = terminated or truncated
             step += 1
-        print(
-            f"genuine pack {env.urgent_met_filled}/{env.urgent_met_total}  "
-            f"return {env.return_so_far:+.2f}"
-        )
+        print_result(env.outcome, env.minutes, env.return_so_far)
         env.close()
 
 
@@ -45,22 +58,14 @@ def play_agent(path: str, episodes: int, seed: int, device_name: str) -> None:
     net, payload = load_checkpoint(path, device)
     print(f"Loaded {payload.get('algo')} experiment {payload.get('config', {}).get('id')} from {path}")
     for episode in range(episodes):
-        print(f"\n=== learned episode {episode + 1}  seed {seed + episode} ===")
-        summary = run_episode(net, seed + episode, device, render_mode="human")
-        for step, row in enumerate(summary["trace"]):
-            print(
-                f"{step:02d}  {row['event']:<18} reward {row['reward']:+7.2f}  "
-                f"return {row['shift_return']:+7.2f}  {row['medicine']} -> {row['pharmacy']}"
-            )
-        print(
-            f"genuine pack {summary['urgent_met_filled']}/{summary['urgent_met_total']}  "
-            f"licensed pharmacy {summary['dispensed']}  public clinic {summary['referred']}  "
-            f"return {summary['return']:+.2f}"
-        )
+        print(f"\n=== learned episode {episode + 1}  seed {seed + episode} ===", flush=True)
+        summary = run_episode(net, seed + episode, device, render_mode="human", on_step=print_step)
+        outcome = "delivered" if summary["dispensed"] else ("returned" if summary["referred"] else "failed")
+        print_result(outcome, 0.0, summary["return"])
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Watch a FARUMASI dispatcher play one shift")
+    parser = argparse.ArgumentParser(description="Watch a FARUMASI rider deliver one order")
     parser.add_argument("--model", default="models/best_agent.pt")
     parser.add_argument("--episodes", type=int, default=3)
     parser.add_argument("--seed", type=int, default=1000)

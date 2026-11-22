@@ -11,7 +11,7 @@ import torch
 from torchrl.modules import MLP
 
 from environment.baselines import heuristic_action
-from environment.custom_env import ENV_VERSION, N_ACTIONS, OBS_DIM, FarumasiShiftEnv
+from environment.custom_env import ENV_VERSION, N_ACTIONS, OBS_DIM, FarumasiRiderEnv
 
 EVAL_SEEDS = tuple(range(1000, 1020))
 
@@ -63,14 +63,22 @@ def greedy_action(net: torch.nn.Module, observation: np.ndarray, device: torch.d
     return int(torch.argmax(masked_logits(net, observation, device)).item())
 
 
-def run_episode(net: torch.nn.Module, seed: int, device: torch.device, render_mode: str | None = None):
-    env = FarumasiShiftEnv(render_mode=render_mode)
+def run_episode(
+    net: torch.nn.Module,
+    seed: int,
+    device: torch.device,
+    render_mode: str | None = None,
+    on_step=None,
+):
+    env = FarumasiRiderEnv(render_mode=render_mode)
     observation, info = env.reset(seed=seed)
     done = False
     trace = []
     while not done:
         action = greedy_action(net, observation, device)
         observation, reward, terminated, truncated, info = env.step(action)
+        if on_step is not None:
+            on_step(len(trace), reward, info)
         trace.append(
             {
                 "action": info["decision"].get("action"),
@@ -93,8 +101,6 @@ def run_episode(net: torch.nn.Module, seed: int, device: torch.device, render_mo
         "referred": int(env.referred),
         "trace": trace,
     }
-    if render_mode == "human":
-        env.render()
     env.close()
     return summary
 
@@ -117,7 +123,7 @@ def heuristic_reference(seeds: tuple[int, ...] = EVAL_SEEDS) -> dict[str, float]
     returns = []
     fills = []
     for seed in seeds:
-        env = FarumasiShiftEnv()
+        env = FarumasiRiderEnv()
         env.reset(seed=seed)
         done = False
         while not done:
@@ -165,7 +171,7 @@ def load_checkpoint(path: str | Path, device: torch.device):
     matrices = [value for value in payload["state_dict"].values() if getattr(value, "ndim", 0) == 2]
     if not any(int(value.shape[1]) == OBS_DIM for value in matrices):
         raise RuntimeError(
-            "This checkpoint belongs to the old dispatcher. Train the patient-map environment again."
+            "This checkpoint belongs to an older environment. Train again on the rider delivery."
         )
     net = make_policy_net(int(payload["hidden"]))
     net.load_state_dict(payload["state_dict"])

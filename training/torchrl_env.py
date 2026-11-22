@@ -1,4 +1,4 @@
-"""TorchRL view of the FARUMASI shift, with a legal-action mask."""
+"""TorchRL view of the FARUMASI rider delivery, with a legal-action mask."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import gymnasium as gymnasium
 from torchrl.data import Binary
 from torchrl.envs import Compose, GymWrapper, InitTracker, RewardSum, Transform, TransformedEnv
 
-from environment.custom_env import N_ACTIONS, FarumasiShiftEnv
+from environment.custom_env import N_ACTIONS, FarumasiRiderEnv
 
 
 class SilentInfo(gymnasium.Wrapper):
@@ -47,7 +47,7 @@ def torch_bool():
 def make_env(seed: int | None = None) -> TransformedEnv:
     env = TransformedEnv(
         GymWrapper(
-            SilentInfo(FarumasiShiftEnv()),
+            SilentInfo(FarumasiRiderEnv()),
             categorical_action_encoding=True,
             device="cpu",
         ),

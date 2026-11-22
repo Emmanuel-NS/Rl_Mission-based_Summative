@@ -91,7 +91,7 @@ def run_sweep(args) -> None:
     reference = heuristic_reference()
     Path("logs/heuristic_reference.json").write_text(json.dumps(reference, indent=2), encoding="utf-8")
     print("\nBest agent:", json.dumps({key: best[key] for key in ("algo", "experiment", "best_eval_return") if best}, indent=2))
-    print("Heuristic on the same held-out shifts:", reference)
+    print("Rule-following rider on the same held-out deliveries:", reference)
     print("Figures:", figures)
     print("Tables:", table)
     sync_backup()
@@ -124,7 +124,7 @@ def demo(args) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="FARUMASI shift-dispatch reinforcement learning")
+    parser = argparse.ArgumentParser(description="FARUMASI rider delivery reinforcement learning")
     parser.add_argument("--sweep", choices=["dqn", "reinforce", "ppo", "a2c", "all"])
     parser.add_argument("--experiment", type=int)
     parser.add_argument("--frames", type=int, default=100_000)

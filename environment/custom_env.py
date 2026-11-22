@@ -1,11 +1,10 @@
-"""A patient searches Kigali for one genuine pack.
+"""FARUMASI rider: one medicine delivery across Kigali.
 
-One episode is one person with a prescription. The city is a small map.
-Licensed pharmacies may be out of stock, closed, or expensive. Unlicensed
-stalls advertise the same medicine cheaply, and buying there can be harmful.
-FARUMASI is an action: open it and every partner pharmacy shows live stock
-and price, and every stall is marked unlicensed. Walking, waiting, and
-guessing all spend the patient's health.
+The rider starts outside Kigali City Pharmacy. She walks in, collects the
+order, rides to a home, an office or a hotel, finds the way through live
+traffic, covers the box when it rains, parks, walks in on foot, checks the
+prescription when one is required, hands the box over, and scans the QR code.
+If the prescription is wrong she carries the medicine back to the pharmacy.
 """
 
 from __future__ import annotations
@@ -16,87 +15,144 @@ import gymnasium as gymnasium
 import numpy as np
 from gymnasium import spaces
 
-METFORMIN = 0
-AMOXICILLIN = 1
-ORS = 2
-MED_NAMES = ("Metformin 500mg", "Amoxicillin 250mg", "ORS sachets")
-DISTRICT_NAMES = ("Nyarugenge", "Gasabo", "Kicukiro")
+ENV_VERSION = "rider-delivery-3"
+MAX_STEPS = 80
+DEADLINE = 30.0
+CANCEL_AFTER = DEADLINE + 25.0
+TIME_COST = 0.03
+SHAPING = 0.04
 
-NORTH, EAST, SOUTH, WEST = 0, 1, 2, 3
-APP, INSPECT, BUY = 4, 5, 6
-N_ACTIONS = 7
-ACTION_NAMES = ("north", "east", "south", "west", "open_farumasi", "inspect", "buy")
-DELTAS = ((0, -1), (1, 0), (0, 1), (-1, 0))
+COLS, ROWS = 6, 4
+N_NODES = COLS * ROWS
+N_EDGES = ROWS * (COLS - 1) + (ROWS - 1) * COLS
+PHARMACY_NODE = 2 * COLS + 0
+PHARMACY_NAME = "Kigali City Pharmacy"
+ARTERY_ROW = 2
+EXTRA_MINUTES = (0.0, 1.0, 3.0, 6.0)
+TRAFFIC_NAMES = ("clear", "busy", "heavy", "blocked")
 
-COLS, ROWS = 21, 11
-MAX_STEPS = 64
-RESTOCK_AT = 14
-ENV_VERSION = "patient-map-1"
-DECAY = (0.028, 0.032, 0.020)
-
-N_PARTNERS = 6
-N_KIOSKS = 3
-GLOBAL_FEATURES = 12
-PARTNER_FEATURES = 6
-KIOSK_FEATURES = 5
-PUBLIC_FEATURES = 4
-LOCAL_FEATURES = 4
-OBS_DIM = (
-    GLOBAL_FEATURES
-    + N_PARTNERS * PARTNER_FEATURES
-    + N_KIOSKS * KIOSK_FEATURES
-    + PUBLIC_FEATURES
-    + LOCAL_FEATURES
-    + N_ACTIONS
+MEDICINES = (
+    ("Metformin 500mg", True),
+    ("Amoxicillin 250mg", True),
+    ("ORS sachets", False),
+    ("Paracetamol 500mg", False),
 )
+MED_NAMES = tuple(name for name, _ in MEDICINES)
+
+RIDE_N, RIDE_E, RIDE_S, RIDE_W = 0, 1, 2, 3
+COVER, WAIT, ENTER, COLLECT, PARK, KNOCK, CARRY = 4, 5, 6, 7, 8, 9, 10
+VERIFY, HAND, SCAN, REMOUNT, RETURN_MEDS = 11, 12, 13, 14, 15
+N_ACTIONS = 16
+ACTION_NAMES = (
+    "ride_north",
+    "ride_east",
+    "ride_south",
+    "ride_west",
+    "cover_box",
+    "wait",
+    "enter_pharmacy",
+    "collect_order",
+    "park_and_walk_in",
+    "knock_or_check_in",
+    "carry_to_patient",
+    "verify_prescription",
+    "hand_over",
+    "scan_qr",
+    "walk_back_to_bike",
+    "return_medicine",
+)
+ACTION_LABELS = (
+    "RIDING NORTH",
+    "RIDING EAST",
+    "RIDING SOUTH",
+    "RIDING WEST",
+    "COVERING THE BOX",
+    "WAITING",
+    "ENTERING THE PHARMACY",
+    "COLLECTING THE ORDER",
+    "PARKING AND WALKING IN",
+    "KNOCKING AT THE GATE",
+    "CARRYING TO THE PATIENT",
+    "CHECKING THE PRESCRIPTION",
+    "HANDING OVER",
+    "SCANNING THE QR CODE",
+    "WALKING BACK TO THE BIKE",
+    "RETURNING THE MEDICINE",
+)
+DIRECTIONS = ((0, -1), (1, 0), (0, 1), (-1, 0))
+
+P_OUTSIDE, P_INSIDE, P_RIDING, P_ENTRANCE, P_BUILDING, P_PATIENT = range(6)
+PHASE_NAMES = ("outside pharmacy", "inside pharmacy", "riding", "at the entrance", "inside the building", "with the patient")
+
+AVENUES = ("KG 7 Ave", "KN 4 Ave", "KN 3 Rd", "KG 11 Ave")
+STREETS = ("KN 1 Rd", "KG 2 St", "KG 9 Ave", "KG 5 Ave", "KG 13 Ave", "KN 8 Rd")
 
 
 @dataclass(frozen=True)
-class Site:
-    site_id: int
-    kind: str
+class Destination:
     name: str
-    x: int
-    y: int
-    district: str
-    price: float
+    kind: str
+    col: int
+    row: int
+    area: str
+
+    @property
+    def node(self) -> int:
+        return self.row * COLS + self.col
 
 
-PARTNERS = (
-    Site(0, "partner", "Nyamirambo Community", 2, 8, "Nyarugenge", 1.35),
-    Site(1, "partner", "Kigali City Pharmacy", 5, 3, "Nyarugenge", 1.90),
-    Site(2, "partner", "Remera Care", 8, 8, "Gasabo", 1.20),
-    Site(3, "partner", "Kimironko Health Mart", 12, 3, "Gasabo", 1.75),
-    Site(4, "partner", "Kicukiro Centre", 16, 8, "Kicukiro", 1.40),
-    Site(5, "partner", "Gikondo Pharmacy", 19, 3, "Kicukiro", 1.95),
+DESTINATIONS = (
+    Destination("Home, Kimihurura", "home", 3, 0, "Kimihurura"),
+    Destination("Home, Remera", "home", 5, 2, "Remera"),
+    Destination("Kigali Heights, Kacyiru", "office", 4, 0, "Kacyiru"),
+    Destination("Offices, Nyarutarama", "office", 3, 3, "Nyarutarama"),
+    Destination("Radisson Blu Hotel", "hotel", 5, 3, "Kimihurura"),
+    Destination("Marriott Hotel", "hotel", 4, 1, "Nyarugenge"),
 )
-KIOSKS = (
-    Site(0, "kiosk", "Nyamirambo roadside stall", 6, 5, "Nyarugenge", 0.70),
-    Site(1, "kiosk", "Remera market table", 10, 6, "Gasabo", 0.65),
-    Site(2, "kiosk", "Gikondo backstreet", 14, 5, "Kicukiro", 0.60),
-)
-PUBLIC = Site(0, "public", "District health centre", 10, 1, "Gasabo", 1.00)
-HOMES = ((0, 0), (0, 10), (20, 0), (20, 10))
+KINDS = ("home", "office", "hotel")
+PATIENT_NAMES = ("Uwase Aline", "Ingabire Claire", "Mukamana Diane", "Uwimana Grace", "Mutesi Sandra", "Umutoni Esther")
 
 
-def _district(x: int) -> int:
-    if x < 7:
-        return 0
-    if x < 14:
-        return 1
-    return 2
+def node_xy(node: int) -> tuple[int, int]:
+    return node % COLS, node // COLS
 
 
-def _unit(value: float) -> float:
-    return float(np.clip(value, 0.0, 1.0))
+def edge_id(a: int, b: int) -> int:
+    ca, ra = node_xy(a)
+    cb, rb = node_xy(b)
+    if ra == rb:
+        return ra * (COLS - 1) + min(ca, cb)
+    return ROWS * (COLS - 1) + min(ra, rb) * COLS + ca
 
 
-def _rel(delta: int, span: int) -> float:
-    return _unit((delta / span + 1.0) / 2.0)
+def edge_nodes(edge: int) -> tuple[int, int]:
+    horizontal = ROWS * (COLS - 1)
+    if edge < horizontal:
+        row, col = divmod(edge, COLS - 1)
+        return row * COLS + col, row * COLS + col + 1
+    row, col = divmod(edge - horizontal, COLS)
+    return row * COLS + col, (row + 1) * COLS + col
+
+
+def neighbour(node: int, direction: int) -> int | None:
+    col, row = node_xy(node)
+    dc, dr = DIRECTIONS[direction]
+    nc, nr = col + dc, row + dr
+    if 0 <= nc < COLS and 0 <= nr < ROWS:
+        return nr * COLS + nc
+    return None
+
+
+def place_name(node: int) -> str:
+    col, row = node_xy(node)
+    return f"{AVENUES[row]} and {STREETS[col]}"
+
+
+GLOBAL_FEATURES = 6 + 2 + 2 + 2 + 1 + 4 + 4 + 3 + 3 + 1 + len(MEDICINES) + 4
+OBS_DIM = GLOBAL_FEATURES + N_EDGES + N_ACTIONS
 
 
 def observation_catalogue() -> list[dict[str, str | int]]:
-    """Meaning, range, source, and update cadence of every observation index."""
     rows: list[dict[str, str | int]] = []
 
     def add(name: str, range_: str, source: str, cadence: str = "every step") -> None:
@@ -111,62 +167,46 @@ def observation_catalogue() -> list[dict[str, str | int]]:
             }
         )
 
-    add("patient_x", "0 to 1 (column / 14)", "patient position on the Kigali map")
-    add("patient_y", "0 to 1 (row / 8)", "patient position on the Kigali map")
-    add("health", "0 to 1", "falls every step; faster for an acute medicine")
-    add("step", "0 to 1 (step / 64)", "decisions taken this search")
-    add("medicine_metformin", "0 or 1", "the prescription drawn at the start of the episode")
-    add("medicine_amoxicillin", "0 or 1", "the prescription drawn at the start of the episode")
-    add("medicine_ors", "0 or 1", "the prescription drawn at the start of the episode")
-    add("urgency", "0.4 or 1", "1 for metformin and amoxicillin, 0.4 for ORS")
-    add("farumasi_open", "0 or 1", "1 after the patient opens the FARUMASI app")
-    add("standing_on_a_site", "0 or 1", "1 if this tile is a pharmacy, stall, or clinic")
-    add("site_known", "0 or 1", "1 if the site under the patient has been revealed")
-    add("restock_happened", "0 or 1", "1 after the mid-search partner delivery", "once, at step 14")
-    for site in PARTNERS:
-        add(f"p{site.site_id}_rel_x", "0 to 1", f"map offset from the patient to {site.name}")
-        add(f"p{site.site_id}_rel_y", "0 to 1", f"map offset from the patient to {site.name}")
-        add(
-            f"p{site.site_id}_stock",
-            "0 to 1 (packs / 2), else 0",
-            "partner shelf for the prescribed medicine; hidden until FARUMASI or a visit",
-        )
-        add(
-            f"p{site.site_id}_price",
-            "0 to 1 ((price - 1) / 1), else 0",
-            "licensed list price; hidden until FARUMASI or a visit",
-        )
-        add(
-            f"p{site.site_id}_available",
-            "0 or 1",
-            "1 only when the patient knows this partner is open and in stock",
-        )
-        add(f"p{site.site_id}_known", "0 or 1", "1 after FARUMASI or after inspecting this pharmacy")
-    for site in KIOSKS:
-        add(f"k{site.site_id}_rel_x", "0 to 1", f"map offset from the patient to {site.name}")
-        add(f"k{site.site_id}_rel_y", "0 to 1", f"map offset from the patient to {site.name}")
-        add(f"k{site.site_id}_advertised_price", "0.25", "chalkboard price, visible without entering")
-        add(f"k{site.site_id}_known_unlicensed", "0 or 1", "1 after FARUMASI or after inspecting the stall")
-        add(f"k{site.site_id}_here", "0 or 1", "1 if the patient is standing on this stall")
-    add("public_rel_x", "0 to 1", "map offset to the district health centre")
-    add("public_rel_y", "0 to 1", "map offset to the district health centre")
-    add("public_signed", "1", "the clinic is a signed public building")
-    add("public_distance", "0 to 1", "Manhattan distance to the clinic, divided by 30")
-    add("here_partner", "0 or 1", "tile under the patient")
-    add("here_kiosk", "0 or 1", "tile under the patient")
-    add("here_public", "0 or 1", "tile under the patient")
-    add("here_home", "0 or 1", "tile under the patient")
-    for name in ACTION_NAMES:
-        add(f"mask_{name}", "0 or 1", "1 if this action is legal now", "every step, also enforced by the policy")
-    if len(rows) != OBS_DIM:
-        raise RuntimeError(f"catalogue has {len(rows)} rows, OBS_DIM is {OBS_DIM}")
+    for phase in PHASE_NAMES:
+        add(f"phase_{phase.replace(' ', '_')}", "0 or 1", "where the rider is in the delivery")
+    add("x", "0 to 1", "rider column on the Kigali grid")
+    add("y", "0 to 1", "rider row on the Kigali grid")
+    add("to_patient_dx", "0 to 1", "patient column minus rider column, rescaled")
+    add("to_patient_dy", "0 to 1", "patient row minus rider row, rescaled")
+    add("to_pharmacy_dx", "0 to 1", "pharmacy column minus rider column, rescaled")
+    add("to_pharmacy_dy", "0 to 1", "pharmacy row minus rider row, rescaled")
+    add("clock", "0 to 1", f"minutes used divided by {int(CANCEL_AFTER)}")
+    add("raining", "0 or 1", "rain has started")
+    add("rain_soon", "0 or 1", "dark clouds: rain starts within two steps")
+    add("box_covered", "0 or 1", "the rain cover is on the delivery box")
+    add("box_condition", "0 to 1", "falls when an uncovered box is rained on")
+    add("rx_required", "0 or 1", "the order needs a valid prescription")
+    add("rx_checked", "0 or 1", "the rider has checked the prescription")
+    add("rx_ok_known", "0 or 1", "checked and valid")
+    add("rx_bad_known", "0 or 1", "checked and wrong")
+    for kind in KINDS:
+        add(f"patient_at_{kind}", "0 or 1", "kind of address, shown on the order")
+    add("returning", "0 or 1", "carrying the medicine back to the pharmacy")
+    add("handed_over", "0 or 1", "the box is in the patient's hands")
+    add("entrance_cleared", "0 or 1", "gate opened or reception has checked the rider in")
+    add("steps", "0 to 1", f"decisions taken divided by {MAX_STEPS}")
+    for number, name in enumerate(MED_NAMES):
+        add(f"medicine_{number}", "0 or 1", f"order contains {name}")
+    for name in ("north", "east", "south", "west"):
+        add(f"traffic_{name}", "0 to 1", "traffic on the road leaving this junction (0 clear, 1 blocked)")
+    for edge in range(N_EDGES):
+        a, b = edge_nodes(edge)
+        add(f"traffic_edge_{edge}", "0 to 1", f"live traffic between {place_name(a)} and {place_name(b)}")
+    for number, name in enumerate(ACTION_NAMES):
+        add(f"legal_{name}", "0 or 1", "legal-action mask", "every step")
+    assert len(rows) == OBS_DIM, (len(rows), OBS_DIM)
     return rows
 
 
-class FarumasiShiftEnv(gymnasium.Env):
-    """Patient search. The class name stays so the trainers keep their import."""
+class FarumasiRiderEnv(gymnasium.Env):
+    """One delivery from Kigali City Pharmacy to a patient."""
 
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 1}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 30}
 
     def __init__(self, render_mode: str | None = None) -> None:
         super().__init__()
@@ -175,117 +215,343 @@ class FarumasiShiftEnv(gymnasium.Env):
         self.action_space = spaces.Discrete(N_ACTIONS)
         self._renderer = None
         self.np_random = np.random.default_rng()
-        self.sites = { (site.x, site.y): site for site in (*PARTNERS, *KIOSKS, PUBLIC) }
-        self.px = self.py = 0
-        self.home = (0, 7)
-        self.med = METFORMIN
-        self.health = 1.0
+        self.traffic = np.zeros(N_EDGES, dtype=np.int32)
+        self._init_state()
+
+    def _init_state(self) -> None:
+        self.dest = DESTINATIONS[0]
+        self.med = 0
+        self.phase = P_OUTSIDE
+        self.node = PHARMACY_NODE
+        self.prev_node = PHARMACY_NODE
         self.steps = 0
-        self.app_open = False
-        self.restocked = False
-        self.partner_stock = np.zeros(N_PARTNERS, dtype=np.int32)
-        self.partner_open = np.ones(N_PARTNERS, dtype=bool)
-        self.partner_known = np.zeros(N_PARTNERS, dtype=bool)
-        self.kiosk_known = np.zeros(N_KIOSKS, dtype=bool)
-        self.restock_id = 0
-        self.obtained = False
-        self.poisoned = False
-        self.bought_public = False
-        self.bought_partner = False
+        self.minutes = 0.0
+        self.rain_at = 10**6
+        self.incident_at = 10**6
+        self.incident_edge = -1
+        self.rush = False
+        self.covered = False
+        self.condition = 1.0
+        self.rx_required = False
+        self.rx_valid = True
+        self.rx_checked = False
+        self.returning = False
+        self.handed = False
+        self.cleared = False
+        self.outcome = ""
         self.return_so_far = 0.0
-        self.last_event = "start"
+        self.last_event = "mission_started"
         self.last_reward = 0.0
         self.last_action = -1
+        self.last_minutes = 0.0
+        self.last_wet = False
+        self.clock_start = 17 * 60 + 5
+        self.order_id = 2000
+        self.patient = PATIENT_NAMES[0]
 
     def reset(self, *, seed: int | None = None, options: dict | None = None):
         super().reset(seed=seed)
         self.np_random = np.random.default_rng(seed)
-        self.med = int(self.np_random.integers(0, 3))
-        self.home = HOMES[int(self.np_random.integers(0, len(HOMES)))]
-        self.px, self.py = self.home
-        self.health = 1.0
-        self.steps = 0
-        self.app_open = False
-        self.restocked = False
-        self.obtained = False
-        self.poisoned = False
-        self.bought_public = False
-        self.bought_partner = False
-        self.return_so_far = 0.0
-        self.last_event = "search_started"
-        self.last_reward = 0.0
-        self.last_action = -1
-        self.partner_stock[:] = 0
-        self.partner_open[:] = True
-        self.partner_known[:] = False
-        self.kiosk_known[:] = False
-        home_district = _district(self.home[0])
-        far_district = (home_district + 2) % 3
-        grouped = {0: [], 1: [], 2: []}
-        for site in PARTNERS:
-            grouped[_district(site.x)].append(site.site_id)
-        local = grouped[home_district]
-        far = grouped[far_district]
-        self.partner_open[local[0]] = False
-        self.restock_id = int(local[1])
-        self.partner_stock[far[0]] = 2
-        self.partner_stock[far[1]] = 1
-        observation = self._observe()
-        return observation, self._info()
+        self._init_state()
+        rng = self.np_random
+        self.dest = DESTINATIONS[int(rng.integers(0, len(DESTINATIONS)))]
+        self.med = int(rng.integers(0, len(MEDICINES)))
+        self.order_id = 2000 + int(rng.integers(0, 900))
+        self.patient = PATIENT_NAMES[int(rng.integers(0, len(PATIENT_NAMES)))]
+        self.rx_required = MEDICINES[self.med][1]
+        self.rx_valid = not (self.rx_required and rng.random() < 0.3)
+        self.rush = bool(rng.random() < 0.6)
+        self.clock_start = (17 * 60 + 5) if self.rush else (11 * 60 + 20)
+        self.traffic = rng.choice([0, 1, 2], size=N_EDGES, p=[0.55, 0.33, 0.12]).astype(np.int32)
+        if self.rush:
+            for col in range(COLS - 1):
+                self.traffic[edge_id(ARTERY_ROW * COLS + col, ARTERY_ROW * COLS + col + 1)] = 2 if rng.random() < 0.65 else 3
+        self.rain_at = int(rng.integers(3, 11)) if rng.random() < 0.65 else 10**6
+        self.incident_at = int(rng.integers(5, 10))
+        return self._observe(), self._info()
+
+    # ------------------------------------------------------------------ step
+
+    @property
+    def raining(self) -> bool:
+        return self.steps >= self.rain_at
+
+    @property
+    def rain_soon(self) -> bool:
+        return (not self.raining) and (self.rain_at - self.steps) <= 2
+
+    @property
+    def target_node(self) -> int:
+        return PHARMACY_NODE if self.returning else self.dest.node
+
+    def edge_minutes(self, edge: int) -> float:
+        return 1.0 + EXTRA_MINUTES[int(self.traffic[edge])] + (1.0 if self.raining else 0.0)
+
+    def time_to(self, target: int) -> np.ndarray:
+        """Traffic-aware minutes from every junction to target (Dijkstra)."""
+        dist = np.full(N_NODES, np.inf)
+        dist[target] = 0.0
+        done = np.zeros(N_NODES, dtype=bool)
+        for _ in range(N_NODES):
+            candidates = np.where(done, np.inf, dist)
+            node = int(np.argmin(candidates))
+            if not np.isfinite(candidates[node]):
+                break
+            done[node] = True
+            for direction in range(4):
+                other = neighbour(node, direction)
+                if other is None:
+                    continue
+                cost = dist[node] + self.edge_minutes(edge_id(node, other))
+                if cost < dist[other]:
+                    dist[other] = cost
+        return dist
+
+    def _tick_world(self) -> None:
+        if self.steps == self.incident_at:
+            self.incident_edge = int(self.np_random.integers(0, N_EDGES))
+            self.traffic[self.incident_edge] = 3
+        elif self.steps % 6 == 0:
+            for edge in self.np_random.integers(0, N_EDGES, size=3):
+                shift = 1 if self.np_random.random() < 0.5 else -1
+                self.traffic[int(edge)] = int(np.clip(self.traffic[int(edge)] + shift, 0, 2))
 
     def step(self, action: int):
         action = int(action)
         self.last_action = action
+        self.prev_node = self.node
         self.steps += 1
-        self._apply_restock()
-        reward = 0.0
+        self._tick_world()
+        legal = self.action_mask()
+        was_outdoors = self.phase in (P_RIDING, P_ENTRANCE) and self.phase_has_box
         terminated = False
-        event = "walked"
-        if action in (NORTH, EAST, SOUTH, WEST):
-            reward, event = self._move(action)
-        elif action == APP:
-            reward, event = self._open_app()
-        elif action == INSPECT:
-            reward, event = self._inspect()
-        elif action == BUY:
-            reward, event, terminated = self._buy()
+        reward = 0.0
+        if legal[action] < 0.5:
+            reward, minutes, event = -0.2, 1.0, "invalid"
         else:
-            reward, event = -0.2, "invalid"
-        self.health = max(0.0, self.health - DECAY[self.med])
-        if self.health <= 0.0 and not terminated:
-            reward -= 2.5
-            event = "health_failed"
-            terminated = True
+            reward, minutes, event, terminated = self._act(action)
+
+        self.last_wet = False
+        if was_outdoors and self.raining and not self.covered and not terminated:
+            damage = 0.12 if action <= RIDE_W else 0.07
+            self.condition = max(0.0, self.condition - damage)
+            reward -= damage
+            self.last_wet = True
+        if self.condition <= 0.3 and not terminated:
+            reward -= 4.0
+            event, terminated = "medicine_ruined", True
+            self.outcome = "ruined"
+
+        self.minutes += minutes
+        self.last_minutes = minutes
+        reward -= TIME_COST * minutes
+        if self.minutes >= CANCEL_AFTER and not terminated:
+            reward -= 3.0
+            event, terminated = "order_cancelled", True
+            self.outcome = "cancelled"
         truncated = self.steps >= MAX_STEPS and not terminated
         if truncated:
-            reward -= 1.5
-            event = "search_abandoned"
+            reward -= 2.0
+            event = "delivery_abandoned"
+            self.outcome = "abandoned"
         self.return_so_far += reward
         self.last_event = event
         self.last_reward = reward
         return self._observe(), float(reward), terminated, truncated, self._info()
 
+    @property
+    def phase_has_box(self) -> bool:
+        return self.phase >= P_RIDING
+
+    def _act(self, action: int):
+        minutes, reward, terminated = 1.0, 0.0, False
+        event = "waited"
+        if action <= RIDE_W:
+            target = neighbour(self.node, action)
+            before = self.time_to(self.target_node)
+            edge = edge_id(self.node, target)
+            minutes = self.edge_minutes(edge)
+            self.node = target
+            reward += SHAPING * (before[self.prev_node] - before[self.node])
+            event = "rode"
+        elif action == COVER:
+            self.covered = True
+            event = "covered_box"
+        elif action == WAIT:
+            event = "waited"
+        elif action == ENTER:
+            self.phase = P_INSIDE
+            event = "entered_pharmacy"
+        elif action == COLLECT:
+            self.phase = P_RIDING
+            reward += 0.2
+            event = "order_collected"
+        elif action == PARK:
+            self.phase = P_ENTRANCE
+            event = "parked"
+        elif action == KNOCK:
+            self.phase = P_BUILDING
+            self.cleared = True
+            minutes = 2.0
+            event = "gate_opened" if self.dest.kind == "home" else "checked_in"
+        elif action == CARRY:
+            self.phase = P_PATIENT
+            minutes = 2.0
+            event = "reached_patient"
+        elif action == VERIFY:
+            self.rx_checked = True
+            reward += 0.3
+            event = "rx_ok" if self.rx_valid else "rx_wrong"
+        elif action == HAND:
+            if self.rx_required and (not self.rx_checked or not self.rx_valid):
+                reward -= 6.0
+                event, terminated = "rx_violation", True
+                self.outcome = "violation"
+            else:
+                self.handed = True
+                self.covered = False
+                reward += 0.5
+                event = "handed_over"
+        elif action == SCAN:
+            quality = 0.6 + 0.4 * self.condition
+            after = self.minutes + minutes
+            bonus = 2.0 * float(np.clip((DEADLINE - after) / DEADLINE, 0.0, 1.0))
+            late = 0.12 * max(0.0, after - DEADLINE)
+            reward += (5.0 + bonus) * quality - late
+            event, terminated = "delivered", True
+            self.outcome = "delivered"
+        elif action == REMOUNT:
+            self.phase = P_RIDING
+            self.returning = True
+            self.covered = False
+            minutes = 2.0
+            event = "returning"
+        elif action == RETURN_MEDS:
+            reward += 2.5
+            event, terminated = "returned_to_pharmacy", True
+            self.outcome = "returned"
+        return reward, minutes, event, terminated
+
+    # ------------------------------------------------------------------ mask
+
     def action_mask(self) -> np.ndarray:
         mask = np.zeros(N_ACTIONS, dtype=np.float32)
-        for action, (dx, dy) in enumerate(DELTAS):
-            nx, ny = self.px + dx, self.py + dy
-            if 0 <= nx < COLS and 0 <= ny < ROWS:
-                mask[action] = 1.0
-        mask[APP] = 1.0
-        site = self.sites.get((self.px, self.py))
-        if site is not None and not self._known(site):
-            mask[INSPECT] = 1.0
-        if site is not None and self._can_buy(site):
-            mask[BUY] = 1.0
+        phase = self.phase
+        if phase == P_OUTSIDE:
+            mask[[ENTER, WAIT]] = 1.0
+        elif phase == P_INSIDE:
+            mask[[COLLECT, WAIT]] = 1.0
+        elif phase == P_RIDING:
+            for direction in range(4):
+                if neighbour(self.node, direction) is not None:
+                    mask[direction] = 1.0
+            mask[WAIT] = 1.0
+            if not self.covered:
+                mask[COVER] = 1.0
+            if not self.returning and self.node == self.dest.node:
+                mask[PARK] = 1.0
+            if self.returning and self.node == PHARMACY_NODE:
+                mask[RETURN_MEDS] = 1.0
+        elif phase == P_ENTRANCE:
+            mask[[KNOCK, WAIT]] = 1.0
+            if not self.covered:
+                mask[COVER] = 1.0
+        elif phase == P_BUILDING:
+            mask[CARRY] = 1.0
+        elif phase == P_PATIENT:
+            if self.handed:
+                mask[SCAN] = 1.0
+            else:
+                mask[HAND] = 1.0
+                if self.rx_required and not self.rx_checked:
+                    mask[VERIFY] = 1.0
+                if self.rx_checked and not self.rx_valid:
+                    mask[REMOUNT] = 1.0
         return mask
+
+    def action_label(self, action: int | None = None) -> str:
+        action = self.last_action if action is None else action
+        if action < 0:
+            return "MISSION START"
+        if action == KNOCK and self.dest.kind != "home":
+            return "CHECKING IN AT RECEPTION"
+        return ACTION_LABELS[action]
+
+    # ----------------------------------------------------------- observation
+
+    def _observe(self) -> np.ndarray:
+        values: list[float] = []
+        for phase in range(6):
+            values.append(1.0 if self.phase == phase else 0.0)
+        col, row = node_xy(self.node)
+        values += [col / (COLS - 1), row / (ROWS - 1)]
+        dcol, drow = node_xy(self.dest.node)
+        values += [(dcol - col + COLS - 1) / (2 * (COLS - 1)), (drow - row + ROWS - 1) / (2 * (ROWS - 1))]
+        pcol, prow = node_xy(PHARMACY_NODE)
+        values += [(pcol - col + COLS - 1) / (2 * (COLS - 1)), (prow - row + ROWS - 1) / (2 * (ROWS - 1))]
+        values.append(min(1.0, self.minutes / CANCEL_AFTER))
+        values += [float(self.raining), float(self.rain_soon), float(self.covered), self.condition]
+        values += [
+            float(self.rx_required),
+            float(self.rx_checked),
+            float(self.rx_checked and self.rx_valid),
+            float(self.rx_checked and not self.rx_valid),
+        ]
+        for kind in KINDS:
+            values.append(1.0 if self.dest.kind == kind else 0.0)
+        values += [float(self.returning), float(self.handed), float(self.cleared)]
+        values.append(self.steps / MAX_STEPS)
+        for number in range(len(MEDICINES)):
+            values.append(1.0 if self.med == number else 0.0)
+        for direction in range(4):
+            other = neighbour(self.node, direction)
+            values.append(0.0 if other is None else self.traffic[edge_id(self.node, other)] / 3.0)
+        values += list(self.traffic.astype(np.float32) / 3.0)
+        values += list(self.action_mask())
+        observation = np.asarray(values, dtype=np.float32)
+        assert observation.shape == (OBS_DIM,), observation.shape
+        return np.clip(observation, 0.0, 1.0)
+
+    def current_place(self) -> str:
+        if self.phase in (P_OUTSIDE, P_INSIDE):
+            return PHARMACY_NAME
+        if self.phase in (P_ENTRANCE, P_BUILDING, P_PATIENT):
+            return self.dest.name
+        if self.node == self.dest.node and not self.returning:
+            return self.dest.name
+        if self.node == PHARMACY_NODE:
+            return PHARMACY_NAME
+        return place_name(self.node)
+
+    def _info(self) -> dict:
+        label = self.action_label()
+        return {
+            "event": self.last_event,
+            "action_mask": self.action_mask(),
+            "condition": round(self.condition, 3),
+            "minutes": round(self.minutes, 1),
+            "shift_return": self.return_so_far,
+            "outcome": self.outcome,
+            "decision": {
+                "action": ACTION_NAMES[self.last_action] if self.last_action >= 0 else None,
+                "action_label": label,
+                "event": self.last_event,
+                "reward": self.last_reward,
+                "medicine": MED_NAMES[self.med],
+                "pharmacy_name": self.current_place(),
+                "shift_return": self.return_so_far,
+            },
+        }
+
+    # ------------------------------------------------------------- rendering
 
     def render(self):
         if self.render_mode is None:
             return None
         if self._renderer is None:
-            from environment.rendering import MapRenderer
+            from environment.rendering import DeliveryRenderer
 
-            self._renderer = MapRenderer(self.render_mode == "human")
+            self._renderer = DeliveryRenderer(self.render_mode == "human")
         return self._renderer.draw(self)
 
     def close(self) -> None:
@@ -293,9 +559,19 @@ class FarumasiShiftEnv(gymnasium.Env):
             self._renderer.close()
             self._renderer = None
 
+    # ---------------------------------------------- metrics the trainers read
+
+    @property
+    def delivered(self) -> int:
+        return int(self.outcome == "delivered")
+
+    @property
+    def returned_ok(self) -> int:
+        return int(self.outcome == "returned")
+
     @property
     def urgent_met_filled(self) -> int:
-        return int(self.obtained and not self.poisoned)
+        return self.delivered + self.returned_ok
 
     @property
     def urgent_met_total(self) -> int:
@@ -307,151 +583,8 @@ class FarumasiShiftEnv(gymnasium.Env):
 
     @property
     def dispensed(self) -> int:
-        return int(self.bought_partner)
+        return self.delivered
 
     @property
     def referred(self) -> int:
-        return int(self.bought_public)
-
-    def _known(self, site: Site) -> bool:
-        if site.kind == "partner":
-            return bool(self.partner_known[site.site_id])
-        if site.kind == "kiosk":
-            return bool(self.kiosk_known[site.site_id])
-        return True
-
-    def _can_buy(self, site: Site) -> bool:
-        if site.kind == "kiosk":
-            return True
-        if site.kind == "public":
-            return True
-        return bool(
-            self.partner_known[site.site_id]
-            and self.partner_open[site.site_id]
-            and self.partner_stock[site.site_id] > 0
-        )
-
-    def _move(self, action: int) -> tuple[float, str]:
-        dx, dy = DELTAS[action]
-        nx, ny = self.px + dx, self.py + dy
-        if not (0 <= nx < COLS and 0 <= ny < ROWS):
-            return -0.2, "blocked"
-        self.px, self.py = nx, ny
-        return -0.01, "walked"
-
-    def _open_app(self) -> tuple[float, str]:
-        if self.app_open:
-            return -0.12, "app_already_open"
-        self.app_open = True
-        self.partner_known[:] = True
-        self.kiosk_known[:] = True
-        return -0.04, "farumasi_opened"
-
-    def _inspect(self) -> tuple[float, str]:
-        site = self.sites.get((self.px, self.py))
-        if site is None:
-            return -0.15, "nothing_to_inspect"
-        if site.kind == "partner":
-            self.partner_known[site.site_id] = True
-        elif site.kind == "kiosk":
-            self.kiosk_known[site.site_id] = True
-        return 0.02, "inspected"
-
-    def _buy(self) -> tuple[float, str, bool]:
-        site = self.sites.get((self.px, self.py))
-        if site is None:
-            return -0.2, "nothing_to_buy", False
-        if site.kind == "kiosk":
-            self.poisoned = True
-            self.health = 0.0
-            return -4.0, "harmful_product", True
-        if site.kind == "public":
-            self.health = max(0.0, self.health - 0.08)
-            self.obtained = True
-            self.bought_public = True
-            return 1.15 + 0.35 * self.health, "public_dispensed", True
-        if not self.partner_known[site.site_id]:
-            return -0.25, "unknown_shelf", False
-        if not self.partner_open[site.site_id] or self.partner_stock[site.site_id] <= 0:
-            return -0.4, "out_of_stock", False
-        self.partner_stock[site.site_id] -= 1
-        self.obtained = True
-        self.bought_partner = True
-        travelled = abs(self.px - self.home[0]) + abs(self.py - self.home[1])
-        reward = 2.15 - 0.55 * (site.price - 1.0) - 0.03 * travelled + 0.45 * self.health
-        return reward, "genuine_dispensed", True
-
-    def _apply_restock(self) -> None:
-        if self.steps == RESTOCK_AT and not self.restocked:
-            self.partner_stock[self.restock_id] += 1
-            self.partner_open[self.restock_id] = True
-            self.restocked = True
-
-    def _observe(self) -> np.ndarray:
-        observation = np.zeros(OBS_DIM, dtype=np.float32)
-        cursor = 0
-
-        def put(value: float) -> None:
-            nonlocal cursor
-            observation[cursor] = _unit(value)
-            cursor += 1
-
-        put(self.px / (COLS - 1))
-        put(self.py / (ROWS - 1))
-        put(self.health)
-        put(self.steps / MAX_STEPS)
-        for med in range(3):
-            put(1.0 if self.med == med else 0.0)
-        put(1.0 if self.med != ORS else 0.4)
-        put(1.0 if self.app_open else 0.0)
-        here = self.sites.get((self.px, self.py))
-        put(1.0 if here is not None else 0.0)
-        put(1.0 if here is not None and self._known(here) else 0.0)
-        put(1.0 if self.restocked else 0.0)
-        for site in PARTNERS:
-            known = bool(self.partner_known[site.site_id])
-            put(_rel(site.x - self.px, COLS - 1))
-            put(_rel(site.y - self.py, ROWS - 1))
-            put((self.partner_stock[site.site_id] / 2.0) if known else 0.0)
-            put((site.price - 1.0) if known else 0.0)
-            available = known and self.partner_open[site.site_id] and self.partner_stock[site.site_id] > 0
-            put(1.0 if available else 0.0)
-            put(1.0 if known else 0.0)
-        for site in KIOSKS:
-            put(_rel(site.x - self.px, COLS - 1))
-            put(_rel(site.y - self.py, ROWS - 1))
-            put(0.25)
-            put(1.0 if self.kiosk_known[site.site_id] else 0.0)
-            put(1.0 if (self.px, self.py) == (site.x, site.y) else 0.0)
-        put(_rel(PUBLIC.x - self.px, COLS - 1))
-        put(_rel(PUBLIC.y - self.py, ROWS - 1))
-        put(1.0)
-        distance = abs(PUBLIC.x - self.px) + abs(PUBLIC.y - self.py)
-        put(distance / 30.0)
-        put(1.0 if here is not None and here.kind == "partner" else 0.0)
-        put(1.0 if here is not None and here.kind == "kiosk" else 0.0)
-        put(1.0 if here is not None and here.kind == "public" else 0.0)
-        put(1.0 if (self.px, self.py) == self.home else 0.0)
-        mask = self.action_mask()
-        observation[cursor : cursor + N_ACTIONS] = mask
-        return observation
-
-    def _info(self) -> dict:
-        site = self.sites.get((self.px, self.py))
-        decision = {
-            "action": "none" if self.last_action < 0 else ACTION_NAMES[self.last_action],
-            "medicine": MED_NAMES[self.med],
-            "pharmacy_name": None if site is None else site.name,
-            "place_kind": None if site is None else site.kind,
-            "health": round(self.health, 3),
-            "farumasi_open": self.app_open,
-            "event": self.last_event,
-        }
-        return {
-            "event": self.last_event,
-            "shift_return": self.return_so_far,
-            "decision": decision,
-            "action_mask": self.action_mask(),
-            "health": self.health,
-            "medicine": MED_NAMES[self.med],
-        }
+        return self.returned_ok

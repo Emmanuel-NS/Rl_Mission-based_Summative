@@ -1,4 +1,4 @@
-"""Deep Q-Network training on the shared FARUMASI shift."""
+"""Deep Q-Network training on the shared FARUMASI delivery."""
 
 from __future__ import annotations
 

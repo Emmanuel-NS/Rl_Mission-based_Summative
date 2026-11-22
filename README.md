@@ -1,6 +1,6 @@
-# FARUMASI shift dispatcher
+# FARUMASI rider delivery
 
-Reinforcement learning for one patient searching Kigali for a genuine pack. Licensed pharmacies can be closed, expensive, or out of stock. Unlicensed stalls advertise the same medicine cheaply, and buying there is harmful. FARUMASI is an action the patient can take: open the app and every partner shelf updates live, while every stall is marked unlicensed. The same map is used for DQN, REINFORCE, PPO, and A2C.
+Reinforcement learning for a FARUMASI rider in Kigali. The rider collects a medicine order at Kigali City Pharmacy and has to bring it to the patient inside a 30-minute promise, with the box unharmed. The roads are live: rush hour jams the main road, an incident can block a street, and rain can start at any time. At the destination the rider parks, walks to the gate, carries the box to the patient, checks the prescription when one is required, hands over, and scans the patient's QR code. A wrong prescription must go back to the pharmacy that dispatched it. The same city is used for DQN, REINFORCE, PPO, and A2C.
 
 ## Setup
 
@@ -16,7 +16,7 @@ uv run python main.py --screenshot
 
 ## Full training
 
-The comparison used in the report is 10 settings for each algorithm, 20,000 environment frames each, on the same shifts and the same held-out seeds (1000–1019). Open `colab_train.ipynb` on a normal CPU runtime. The pharmacy step is Python and the network is small, so a T4 does not make the sweep faster and the free GPU quota runs out before the files can be downloaded.
+The comparison used in the report is 10 settings for each algorithm, 20,000 environment frames each, on the same deliveries and the same held-out seeds (1000–1019). Open `colab_train.ipynb` on a normal CPU runtime. The city step is Python and the network is small, so a T4 does not make the sweep faster and the free GPU quota runs out before the files can be downloaded.
 
 ```powershell
 uv run python main.py --sweep all --device cpu --frames 20000 --eval-every 5000
@@ -28,25 +28,29 @@ One algorithm, one setting:
 uv run python main.py --sweep ppo --experiment 1 --device cpu --frames 20000
 ```
 
-After the sweep, `models/best_agent.pt` is the greedy policy with the highest mean return on the held-out shifts. Curves and tables are written to `logs/figures/` and `logs/experiment_tables.md`. A finished experiment is skipped if you start the sweep again, so a Colab disconnect does not throw away completed runs. Pass `--force` to train that setting again.
+After the sweep, `models/best_agent.pt` is the greedy policy with the highest mean return on the held-out deliveries. Curves and tables are written to `logs/figures/` and `logs/experiment_tables.md`. A finished experiment is skipped if you start the sweep again, so a Colab disconnect does not throw away completed runs. Pass `--force` to train that setting again. Results from older environments (dispatcher, patient map, patient street) are ignored.
 
-## Watch a shift
+## Watch a delivery
 
 ```powershell
 uv run python play.py --episodes 3 --seed 1000
 ```
 
-This opens the Kigali map and prints every step in the terminal. The window advances once a second so the walk can be watched. `--heuristic` plays the hand-written patient, who opens FARUMASI and then crosses toward a licensed shelf.
+The window is a top-down Kigali with live traffic, a minimap showing the fastest route, and a mission card, in the style of a delivery game. Pharmacy, gate, and lobby scenes are shown side-on. Every step is also printed in the terminal. `--heuristic` plays the hand-written rider, which is the reference the agents are compared against.
 
 ## What the agent observes and does
 
-Actions, in order: north, east, south, west, open FARUMASI, inspect the building you are standing on, buy.
+The map is a 6 by 4 grid of Kigali junctions (KN 3 Rd is the main road). Orders go to one of six places: two homes, an office, an office tower, and two hotels.
 
-`uv run python main.py --describe` prints every observation index. Partner stock and price stay hidden until the app is opened or that pharmacy is inspected. Stall positions and their cheap advertised price are visible immediately. The licence is not. The legal-action mask is the last seven values.
+Actions (16): ride north, east, south, west; cover the box with the rain tarp; wait; enter the pharmacy; collect the order; park; knock or check in at reception; carry the box; verify the prescription; hand over; scan the QR code; walk back to the bike; return the medicine to the pharmacy.
 
-A search starts at a corner of the city. The pharmacies in that district are closed or empty. The genuine packs are across Kigali, and on step 14 a nearby partner receives one pack, which FARUMASI shows if the app is open. Three stalls will sell something harmful. Health falls on every step. The search ends when the patient buys a genuine pack, buys from a stall, runs out of health, or reaches 64 steps.
+`uv run python main.py --describe` prints every observation index (90 values: phase, position, destination and pharmacy offsets, clock, rain, box condition, prescription knowledge, the traffic level on all 38 roads, and a legal-action mask in the last 16 values).
 
-The reward pays most for a nearby affordable licensed pack, less for the public clinic, and a large penalty for a harmful product. Opening FARUMASI costs a little time and reveals the safe shelves.
+The rider is paid for a delivery that is quick and keeps the medicine dry, and pays for every minute and for rain damage. It is penalised for handing over a prescription medicine without verification or with an invalid prescription, and for a ruined box. Returning an invalid prescription to the pharmacy is a correct ending with a smaller reward. Heavy traffic costs extra minutes, so riding the main road at rush hour is a mistake that a side street avoids. The episode ends when the delivery is scanned, the medicine is returned, the box is ruined, the order is cancelled at 55 minutes, or the rider reaches 80 steps.
+
+## Art
+
+The buildings, the people, the cars, the bike, the trees and the interior backdrops in `assets/raw/` were generated with an AI image tool for this project. `uv run python -m environment.sprites` cuts them into the transparent sprites in `assets/sprites/` that the window uses. The FARUMASI logo is drawn in code. The environment, the rendering, and the training are written for this project.
 
 ## Layout
 
@@ -54,7 +58,9 @@ The reward pays most for a nearby affordable licensed pack, less for the public 
 main.py
 play.py
 environment/custom_env.py
+environment/city_map.py
 environment/rendering.py
+environment/sprites.py
 environment/baselines.py
 training/dqn_training.py
 training/pg_training.py
@@ -68,4 +74,4 @@ tests/
 
 ## Video
 
-From this folder, with the camera and the whole screen shared: say that the patient has to find a genuine pack, that some stalls are unlicensed, and that FARUMASI shows live stock before the walk. Then run `uv run python play.py --episodes 3 --seed 1000` and leave the map and the terminal visible for most of the recording. The old dispatcher checkpoints do not match this map, so train again before recording the learned agent. `uv run python play.py --heuristic --episodes 3 --seed 1000` shows the hand-written patient on the same map.
+From this folder, with the camera and the whole screen shared: say that FARUMASI riders have to deliver fast and safely, that rush hour and rain change the best strategy, and that a wrong prescription goes back to the pharmacy. Then run `uv run python play.py --episodes 6 --seed 1000` and leave the window and the terminal visible. Checkpoints from earlier environments do not fit this one, so train again before recording the learned agent. `uv run python play.py --heuristic --episodes 6 --seed 1000` shows the hand-written rider on the same city.

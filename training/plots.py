@@ -61,7 +61,7 @@ def build_plots(log_root: str | Path = "logs", out_dir: str | Path = "logs/figur
         if frames:
             axis.plot(frames, scores, label=f"{algo} exp {best['experiment']}", color=COLOURS[algo], linewidth=2)
     axis.set_xlabel("Environment frames")
-    axis.set_ylabel("Greedy return on held-out shifts")
+    axis.set_ylabel("Greedy return on held-out deliveries")
     axis.set_title("Best run of each algorithm")
     axis.legend()
     axis.grid(True, alpha=0.3)
@@ -166,7 +166,7 @@ def write_markdown_tables(log_root: str | Path = "logs", path: str | Path = "log
             lines.append("")
             continue
         keys = [key for key in group[0]["config"].keys() if key not in ("id", "name")]
-        header = ["exp", "name", *keys, "best_return", "urgent_fill"]
+        header = ["exp", "name", *keys, "best_return", "success"]
         lines.append("| " + " | ".join(header) + " |")
         lines.append("| " + " | ".join("---" for _ in header) + " |")
         for item in group:

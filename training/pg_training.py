@@ -1,4 +1,4 @@
-"""REINFORCE, PPO, and A2C on the same FARUMASI shift."""
+"""REINFORCE, PPO, and A2C on the same FARUMASI delivery."""
 
 from __future__ import annotations
 

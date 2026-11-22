@@ -1,15 +1,15 @@
-"""FARUMASI patient-search environment."""
+"""FARUMASI rider delivery environment."""
 
 from environment.custom_env import (
     ACTION_NAMES,
     N_ACTIONS,
     OBS_DIM,
-    FarumasiShiftEnv,
+    FarumasiRiderEnv,
 )
 
 __all__ = [
     "ACTION_NAMES",
-    "FarumasiShiftEnv",
+    "FarumasiRiderEnv",
     "N_ACTIONS",
     "OBS_DIM",
 ]
