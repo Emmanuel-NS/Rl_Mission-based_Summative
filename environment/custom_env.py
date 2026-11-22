@@ -1,16 +1,11 @@
-"""Sequential FARUMASI pharmacy-shift dispatcher.
+"""A patient searches Kigali for one genuine pack.
 
-One episode is one Kigali morning shift. Patients have already submitted
-medicine requests in the FARUMASI app. The agent stands in for the dispatcher:
-
-* send the request at the front of the queue to one of six partner pharmacies,
-* defer it so a more urgent request is served first, or
-* refer the patient to a public facility.
-
-Metformin stock is scarce. A pack dispensed to a routine refill cannot be
-dispensed to a later patient who is already rationing a diabetes dose. That
-cost shows up when the urgent request fails, and again in a bonus paid only
-at the end of the shift. Nearest-pharmacy ranking cannot express that trade.
+One episode is one person with a prescription. The city is a small map.
+Licensed pharmacies may be out of stock, closed, or expensive. Unlicensed
+stalls advertise the same medicine cheaply, and buying there can be harmful.
+FARUMASI is an action: open it and every partner pharmacy shows live stock
+and price, and every stall is marked unlicensed. Walking, waiting, and
+guessing all spend the patient's health.
 """
 
 from __future__ import annotations
@@ -25,527 +20,438 @@ METFORMIN = 0
 AMOXICILLIN = 1
 ORS = 2
 MED_NAMES = ("Metformin 500mg", "Amoxicillin 250mg", "ORS sachets")
-
 DISTRICT_NAMES = ("Nyarugenge", "Gasabo", "Kicukiro")
-# Minutes by motorbike. Same district, neighbouring district, opposite ends of Kigali.
-TRAVEL_MINUTES = (
-    (15, 30, 45),
-    (30, 15, 30),
-    (45, 30, 15),
+
+NORTH, EAST, SOUTH, WEST = 0, 1, 2, 3
+APP, INSPECT, BUY = 4, 5, 6
+N_ACTIONS = 7
+ACTION_NAMES = ("north", "east", "south", "west", "open_farumasi", "inspect", "buy")
+DELTAS = ((0, -1), (1, 0), (0, 1), (-1, 0))
+
+COLS, ROWS = 21, 11
+MAX_STEPS = 64
+RESTOCK_AT = 14
+ENV_VERSION = "patient-map-1"
+DECAY = (0.028, 0.032, 0.020)
+
+N_PARTNERS = 6
+N_KIOSKS = 3
+GLOBAL_FEATURES = 12
+PARTNER_FEATURES = 6
+KIOSK_FEATURES = 5
+PUBLIC_FEATURES = 4
+LOCAL_FEATURES = 4
+OBS_DIM = (
+    GLOBAL_FEATURES
+    + N_PARTNERS * PARTNER_FEATURES
+    + N_KIOSKS * KIOSK_FEATURES
+    + PUBLIC_FEATURES
+    + LOCAL_FEATURES
+    + N_ACTIONS
 )
-
-N_PHARMACIES = 6
-DEFER = 6
-REFER = 7
-N_ACTIONS = 8
-RESTOCK_AT = 8
-MAX_STEPS = 72
-PHARM_FEATURES = 8
-N_GLOBAL = 18
-OBS_DIM = N_PHARMACIES * PHARM_FEATURES + N_GLOBAL + N_ACTIONS
-
-URGENT_MET_ORDERS = 4
-ROUTINE_MET_ORDERS = 5
-AMOX_ORDERS = 6
-ORS_ORDERS = 9
-METFORMIN_PACKS = 4
 
 
 @dataclass(frozen=True)
-class Pharmacy:
-    pharmacy_id: int
+class Site:
+    site_id: int
+    kind: str
     name: str
-    district_id: int
+    x: int
+    y: int
     district: str
-    price_ratio: float
+    price: float
 
 
-PHARMACIES = (
-    Pharmacy(0, "Nyamirambo Community", 0, "Nyarugenge", 1.35),
-    Pharmacy(1, "Kigali City Pharmacy", 0, "Nyarugenge", 1.90),
-    Pharmacy(2, "Remera Care", 1, "Gasabo", 1.20),
-    Pharmacy(3, "Kimironko Health Mart", 1, "Gasabo", 1.75),
-    Pharmacy(4, "Kicukiro Centre", 2, "Kicukiro", 1.40),
-    Pharmacy(5, "Gikondo Pharmacy", 2, "Kicukiro", 1.95),
+PARTNERS = (
+    Site(0, "partner", "Nyamirambo Community", 2, 8, "Nyarugenge", 1.35),
+    Site(1, "partner", "Kigali City Pharmacy", 5, 3, "Nyarugenge", 1.90),
+    Site(2, "partner", "Remera Care", 8, 8, "Gasabo", 1.20),
+    Site(3, "partner", "Kimironko Health Mart", 12, 3, "Gasabo", 1.75),
+    Site(4, "partner", "Kicukiro Centre", 16, 8, "Kicukiro", 1.40),
+    Site(5, "partner", "Gikondo Pharmacy", 19, 3, "Kicukiro", 1.95),
 )
-
-ACTION_NAMES = tuple(
-    [f"dispense:{pharmacy.name}" for pharmacy in PHARMACIES] + ["defer", "refer_public"]
+KIOSKS = (
+    Site(0, "kiosk", "Nyamirambo roadside stall", 6, 5, "Nyarugenge", 0.70),
+    Site(1, "kiosk", "Remera market table", 10, 6, "Gasabo", 0.65),
+    Site(2, "kiosk", "Gikondo backstreet", 14, 5, "Kicukiro", 0.60),
 )
+PUBLIC = Site(0, "public", "District health centre", 10, 1, "Gasabo", 1.00)
+HOMES = ((0, 0), (0, 10), (20, 0), (20, 10))
 
 
-@dataclass
-class Order:
-    order_id: int
-    med: int
-    urgency: float
-    district: int
-    strikes: int = 0
-    deferrals: int = 0
+def _district(x: int) -> int:
+    if x < 7:
+        return 0
+    if x < 14:
+        return 1
+    return 2
 
-    @property
-    def urgent_metformin(self) -> bool:
-        return self.med == METFORMIN and self.urgency >= 0.9
 
-    @property
-    def routine_metformin(self) -> bool:
-        return self.med == METFORMIN and self.urgency < 0.5
+def _unit(value: float) -> float:
+    return float(np.clip(value, 0.0, 1.0))
+
+
+def _rel(delta: int, span: int) -> float:
+    return _unit((delta / span + 1.0) / 2.0)
 
 
 def observation_catalogue() -> list[dict[str, str | int]]:
     """Meaning, range, source, and update cadence of every observation index."""
     rows: list[dict[str, str | int]] = []
-    index = 0
-    for pharmacy in PHARMACIES:
-        fields = (
-            (
-                "stock_metformin",
-                "0 to 1 (packs / 6)",
-                "partner inventory, decremented when this pharmacy dispenses",
-            ),
-            (
-                "stock_amoxicillin",
-                "0 to 1 (packs / 8)",
-                "partner inventory, decremented when this pharmacy dispenses",
-            ),
-            (
-                "stock_ors",
-                "0 to 1 (packs / 8)",
-                "partner inventory, decremented when this pharmacy dispenses",
-            ),
-            (
-                "near_expiry_current_medicine",
-                "0 or 1",
-                "1 if this pharmacy holds a near-expiry pack of the current medicine",
-            ),
-            (
-                "is_open",
-                "0 or 1",
-                "shift roster; a closed pharmacy keeps stock but cannot dispense",
-            ),
-            (
-                "travel_minutes",
-                "0 to 1 (minutes / 45)",
-                "district travel matrix from the current patient to this pharmacy",
-            ),
-            (
-                "price_ratio",
-                "0 to 1 ((ratio - 1) / 1)",
-                "pharmacy list price divided by the international reference price",
-            ),
-            (
-                "can_dispense",
-                "0 or 1",
-                "open and stock of the current medicine is at least 1",
-            ),
-        )
-        for name, span, source in fields:
-            rows.append(
-                {
-                    "index": index,
-                    "name": f"p{pharmacy.pharmacy_id}_{name}",
-                    "range": span,
-                    "source": f"{pharmacy.name}. {source}",
-                    "cadence": "every decision",
-                    "agent_path": "flat float vector into the policy network",
-                }
-            )
-            index += 1
 
-    global_fields = (
-        ("medicine_metformin", "0 or 1", "one-hot of the request at the front of the queue"),
-        ("medicine_amoxicillin", "0 or 1", "one-hot of the request at the front of the queue"),
-        ("medicine_ors", "0 or 1", "one-hot of the request at the front of the queue"),
-        ("urgency", "0 to 1", "1.0 urgent metformin, 0.85 acute antibiotic, 0.25 routine"),
-        ("district_nyarugenge", "0 or 1", "patient district on the request"),
-        ("district_gasabo", "0 or 1", "patient district on the request"),
-        ("district_kicukiro", "0 or 1", "patient district on the request"),
-        ("city_stock_current", "0 to 1 (packs / 8)", "sum of this medicine across open pharmacies"),
-        ("remaining_urgent_metformin", "0 to 1 (count / 6)", "urgent metformin requests still in the queue, including the current one"),
-        ("remaining_routine_metformin", "0 to 1 (count / 8)", "routine metformin requests still in the queue"),
-        ("urgent_metformin_behind", "0 to 1 (count / 6)", "urgent metformin requests waiting behind the current one"),
-        ("queue_length", "0 to 1 (count / 24)", "requests not yet closed"),
-        ("shift_progress", "0 to 1 (step / 72)", "decisions already taken this shift"),
-        ("strikes", "0 to 1 (strikes / 2)", "failed dispense attempts on the current request"),
-        ("deferrals", "0 to 1 (deferrals / 2)", "times this request has been sent to the back of the queue"),
-        ("any_pharmacy_can_dispense", "0 or 1", "at least one open pharmacy has the medicine"),
-        ("restock_pending", "0 or 1", "1 until the mid-shift metformin drop has arrived"),
-        ("near_expiry_available", "0 or 1", "an open pharmacy has a near-expiry pack of the current medicine"),
-    )
-    for name, span, source in global_fields:
+    def add(name: str, range_: str, source: str, cadence: str = "every step") -> None:
         rows.append(
             {
-                "index": index,
+                "index": len(rows),
                 "name": name,
-                "range": span,
+                "range": range_,
                 "source": source,
-                "cadence": "every decision",
-                "agent_path": "flat float vector into the policy network",
+                "cadence": cadence,
+                "agent_path": "read by the policy before every action",
             }
         )
-        index += 1
 
-    for action_id, action_name in enumerate(ACTION_NAMES):
-        rows.append(
-            {
-                "index": index,
-                "name": f"mask_{action_name}",
-                "range": "0 or 1",
-                "source": "dispatch screen: pharmacies that are closed or out of stock are greyed out; defer is off after two defers",
-                "cadence": "every decision",
-                "agent_path": "last 8 observation values; also used to mask illegal actions",
-            }
+    add("patient_x", "0 to 1 (column / 14)", "patient position on the Kigali map")
+    add("patient_y", "0 to 1 (row / 8)", "patient position on the Kigali map")
+    add("health", "0 to 1", "falls every step; faster for an acute medicine")
+    add("step", "0 to 1 (step / 64)", "decisions taken this search")
+    add("medicine_metformin", "0 or 1", "the prescription drawn at the start of the episode")
+    add("medicine_amoxicillin", "0 or 1", "the prescription drawn at the start of the episode")
+    add("medicine_ors", "0 or 1", "the prescription drawn at the start of the episode")
+    add("urgency", "0.4 or 1", "1 for metformin and amoxicillin, 0.4 for ORS")
+    add("farumasi_open", "0 or 1", "1 after the patient opens the FARUMASI app")
+    add("standing_on_a_site", "0 or 1", "1 if this tile is a pharmacy, stall, or clinic")
+    add("site_known", "0 or 1", "1 if the site under the patient has been revealed")
+    add("restock_happened", "0 or 1", "1 after the mid-search partner delivery", "once, at step 14")
+    for site in PARTNERS:
+        add(f"p{site.site_id}_rel_x", "0 to 1", f"map offset from the patient to {site.name}")
+        add(f"p{site.site_id}_rel_y", "0 to 1", f"map offset from the patient to {site.name}")
+        add(
+            f"p{site.site_id}_stock",
+            "0 to 1 (packs / 2), else 0",
+            "partner shelf for the prescribed medicine; hidden until FARUMASI or a visit",
         )
-        index += 1
-    if index != OBS_DIM:
-        raise RuntimeError(f"catalogue has {index} rows, OBS_DIM is {OBS_DIM}")
+        add(
+            f"p{site.site_id}_price",
+            "0 to 1 ((price - 1) / 1), else 0",
+            "licensed list price; hidden until FARUMASI or a visit",
+        )
+        add(
+            f"p{site.site_id}_available",
+            "0 or 1",
+            "1 only when the patient knows this partner is open and in stock",
+        )
+        add(f"p{site.site_id}_known", "0 or 1", "1 after FARUMASI or after inspecting this pharmacy")
+    for site in KIOSKS:
+        add(f"k{site.site_id}_rel_x", "0 to 1", f"map offset from the patient to {site.name}")
+        add(f"k{site.site_id}_rel_y", "0 to 1", f"map offset from the patient to {site.name}")
+        add(f"k{site.site_id}_advertised_price", "0.25", "chalkboard price, visible without entering")
+        add(f"k{site.site_id}_known_unlicensed", "0 or 1", "1 after FARUMASI or after inspecting the stall")
+        add(f"k{site.site_id}_here", "0 or 1", "1 if the patient is standing on this stall")
+    add("public_rel_x", "0 to 1", "map offset to the district health centre")
+    add("public_rel_y", "0 to 1", "map offset to the district health centre")
+    add("public_signed", "1", "the clinic is a signed public building")
+    add("public_distance", "0 to 1", "Manhattan distance to the clinic, divided by 30")
+    add("here_partner", "0 or 1", "tile under the patient")
+    add("here_kiosk", "0 or 1", "tile under the patient")
+    add("here_public", "0 or 1", "tile under the patient")
+    add("here_home", "0 or 1", "tile under the patient")
+    for name in ACTION_NAMES:
+        add(f"mask_{name}", "0 or 1", "1 if this action is legal now", "every step, also enforced by the policy")
+    if len(rows) != OBS_DIM:
+        raise RuntimeError(f"catalogue has {len(rows)} rows, OBS_DIM is {OBS_DIM}")
     return rows
 
 
 class FarumasiShiftEnv(gymnasium.Env):
-    """Morning dispatch shift for FARUMASI partner pharmacies in Kigali."""
+    """Patient search. The class name stays so the trainers keep their import."""
 
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 1}
 
-    def __init__(self, render_mode: str | None = None):
+    def __init__(self, render_mode: str | None = None) -> None:
         super().__init__()
         self.render_mode = render_mode
-        self.observation_space = spaces.Box(
-            low=0.0, high=1.0, shape=(OBS_DIM,), dtype=np.float32
-        )
+        self.observation_space = spaces.Box(low=0.0, high=1.0, shape=(OBS_DIM,), dtype=np.float32)
         self.action_space = spaces.Discrete(N_ACTIONS)
         self._renderer = None
-
-        self.stock = np.zeros((N_PHARMACIES, 3), dtype=np.int32)
-        self.near = np.zeros((N_PHARMACIES, 3), dtype=np.int32)
-        self.open_mask = np.ones(N_PHARMACIES, dtype=bool)
-        self.queue: list[Order] = []
+        self.np_random = np.random.default_rng()
+        self.sites = { (site.x, site.y): site for site in (*PARTNERS, *KIOSKS, PUBLIC) }
+        self.px = self.py = 0
+        self.home = (0, 7)
+        self.med = METFORMIN
+        self.health = 1.0
         self.steps = 0
+        self.app_open = False
         self.restocked = False
-        self.restock_pharmacy = -1
+        self.partner_stock = np.zeros(N_PARTNERS, dtype=np.int32)
+        self.partner_open = np.ones(N_PARTNERS, dtype=bool)
+        self.partner_known = np.zeros(N_PARTNERS, dtype=bool)
+        self.kiosk_known = np.zeros(N_KIOSKS, dtype=bool)
+        self.restock_id = 0
+        self.obtained = False
+        self.poisoned = False
+        self.bought_public = False
+        self.bought_partner = False
         self.return_so_far = 0.0
-        self.last_action = -1
-        self.last_event = "shift_start"
+        self.last_event = "start"
         self.last_reward = 0.0
-        self.last_decision: dict = {}
-        self.urgent_met_total = URGENT_MET_ORDERS
-        self.urgent_met_filled = 0
-        self.urgent_met_failed = 0
-        self.routine_met_filled = 0
-        self.dispensed = 0
-        self.referred = 0
-        self.closed_pharmacy = -1
+        self.last_action = -1
 
     def reset(self, *, seed: int | None = None, options: dict | None = None):
         super().reset(seed=seed)
-        self.stock = np.zeros((N_PHARMACIES, 3), dtype=np.int32)
-        self.near = np.zeros((N_PHARMACIES, 3), dtype=np.int32)
-        self.open_mask = np.ones(N_PHARMACIES, dtype=bool)
+        self.np_random = np.random.default_rng(seed)
+        self.med = int(self.np_random.integers(0, 3))
+        self.home = HOMES[int(self.np_random.integers(0, len(HOMES)))]
+        self.px, self.py = self.home
+        self.health = 1.0
         self.steps = 0
+        self.app_open = False
         self.restocked = False
-        self.restock_pharmacy = -1
+        self.obtained = False
+        self.poisoned = False
+        self.bought_public = False
+        self.bought_partner = False
         self.return_so_far = 0.0
-        self.last_action = -1
-        self.last_event = "shift_start"
+        self.last_event = "search_started"
         self.last_reward = 0.0
-        self.last_decision = {}
-        self.urgent_met_filled = 0
-        self.urgent_met_failed = 0
-        self.routine_met_filled = 0
-        self.dispensed = 0
-        self.referred = 0
-        self._sample_shift()
+        self.last_action = -1
+        self.partner_stock[:] = 0
+        self.partner_open[:] = True
+        self.partner_known[:] = False
+        self.kiosk_known[:] = False
+        home_district = _district(self.home[0])
+        far_district = (home_district + 2) % 3
+        grouped = {0: [], 1: [], 2: []}
+        for site in PARTNERS:
+            grouped[_district(site.x)].append(site.site_id)
+        local = grouped[home_district]
+        far = grouped[far_district]
+        self.partner_open[local[0]] = False
+        self.restock_id = int(local[1])
+        self.partner_stock[far[0]] = 2
+        self.partner_stock[far[1]] = 1
         observation = self._observe()
         return observation, self._info()
 
     def step(self, action: int):
-        if not self.queue:
-            observation = self._observe()
-            return observation, 0.0, True, False, self._info()
-
-        if self.steps == RESTOCK_AT and not self.restocked:
-            self._apply_restock()
-
         action = int(action)
-        order = self.queue[0]
-        reward = 0.0
-        event = "invalid"
-
-        if action < N_PHARMACIES:
-            reward, event = self._dispense(action, order)
-        elif action == DEFER:
-            reward, event = self._defer(order)
-        else:
-            reward, event = self._refer(order)
-
-        self.steps += 1
         self.last_action = action
+        self.steps += 1
+        self._apply_restock()
+        reward = 0.0
+        terminated = False
+        event = "walked"
+        if action in (NORTH, EAST, SOUTH, WEST):
+            reward, event = self._move(action)
+        elif action == APP:
+            reward, event = self._open_app()
+        elif action == INSPECT:
+            reward, event = self._inspect()
+        elif action == BUY:
+            reward, event, terminated = self._buy()
+        else:
+            reward, event = -0.2, "invalid"
+        self.health = max(0.0, self.health - DECAY[self.med])
+        if self.health <= 0.0 and not terminated:
+            reward -= 2.5
+            event = "health_failed"
+            terminated = True
+        truncated = self.steps >= MAX_STEPS and not terminated
+        if truncated:
+            reward -= 1.5
+            event = "search_abandoned"
+        self.return_so_far += reward
         self.last_event = event
-        self.last_reward = float(reward)
-        terminated = len(self.queue) == 0
-        truncated = (not terminated) and self.steps >= MAX_STEPS
-        if terminated or truncated:
-            end_bonus = self._terminal_bonus()
-            reward += end_bonus
-            self.last_reward = float(reward)
-        self.return_so_far += float(reward)
-        self.last_decision = self._decision(action, order, event, float(reward))
-        observation = self._observe()
-        return observation, float(reward), terminated, truncated, self._info()
+        self.last_reward = reward
+        return self._observe(), float(reward), terminated, truncated, self._info()
+
+    def action_mask(self) -> np.ndarray:
+        mask = np.zeros(N_ACTIONS, dtype=np.float32)
+        for action, (dx, dy) in enumerate(DELTAS):
+            nx, ny = self.px + dx, self.py + dy
+            if 0 <= nx < COLS and 0 <= ny < ROWS:
+                mask[action] = 1.0
+        mask[APP] = 1.0
+        site = self.sites.get((self.px, self.py))
+        if site is not None and not self._known(site):
+            mask[INSPECT] = 1.0
+        if site is not None and self._can_buy(site):
+            mask[BUY] = 1.0
+        return mask
 
     def render(self):
         if self.render_mode is None:
             return None
         if self._renderer is None:
-            from environment.rendering import DispatchRenderer
+            from environment.rendering import MapRenderer
 
-            self._renderer = DispatchRenderer()
-        return self._renderer.render(self, human=self.render_mode == "human")
+            self._renderer = MapRenderer(self.render_mode == "human")
+        return self._renderer.draw(self)
 
-    def close(self):
+    def close(self) -> None:
         if self._renderer is not None:
             self._renderer.close()
             self._renderer = None
 
-    def action_mask(self) -> np.ndarray:
-        mask = np.zeros(N_ACTIONS, dtype=np.float32)
-        if not self.queue:
-            mask[REFER] = 1.0
-            return mask
-        order = self.queue[0]
-        for pharmacy_id in range(N_PHARMACIES):
-            if self.open_mask[pharmacy_id] and self.stock[pharmacy_id, order.med] > 0:
-                mask[pharmacy_id] = 1.0
-        if order.deferrals < 2:
-            mask[DEFER] = 1.0
-        mask[REFER] = 1.0
-        return mask
+    @property
+    def urgent_met_filled(self) -> int:
+        return int(self.obtained and not self.poisoned)
 
-    def city_available(self, med: int) -> int:
-        total = 0
-        for pharmacy_id in range(N_PHARMACIES):
-            if self.open_mask[pharmacy_id]:
-                total += int(self.stock[pharmacy_id, med])
-        return total
+    @property
+    def urgent_met_total(self) -> int:
+        return 1
 
-    def count_metformin(self, *, urgent: bool, exclude_current: bool) -> int:
-        orders = self.queue[1:] if exclude_current else self.queue
-        total = 0
-        for order in orders:
-            if urgent and order.urgent_metformin:
-                total += 1
-            if not urgent and order.routine_metformin:
-                total += 1
-        return total
+    @property
+    def routine_met_filled(self) -> int:
+        return 0
 
-    def queue_preview(self, limit: int = 6) -> list[str]:
-        lines = []
-        for order in self.queue[:limit]:
-            kind = "urgent" if order.urgency >= 0.8 else "routine"
-            lines.append(
-                f"#{order.order_id} {MED_NAMES[order.med]} · {kind} · {DISTRICT_NAMES[order.district]}"
-            )
-        return lines
+    @property
+    def dispensed(self) -> int:
+        return int(self.bought_partner)
 
-    def _sample_shift(self) -> None:
-        rng = self.np_random
-        for _ in range(METFORMIN_PACKS):
-            self.stock[int(rng.integers(0, N_PHARMACIES)), METFORMIN] += 1
-        for pharmacy_id in range(N_PHARMACIES):
-            self.stock[pharmacy_id, AMOXICILLIN] = int(rng.integers(2, 5))
-            self.stock[pharmacy_id, ORS] = int(rng.integers(3, 7))
+    @property
+    def referred(self) -> int:
+        return int(self.bought_public)
 
-        self.closed_pharmacy = int(rng.integers(0, N_PHARMACIES))
-        self.open_mask[self.closed_pharmacy] = False
-        hidden = int(self.stock[self.closed_pharmacy, METFORMIN])
-        self.stock[self.closed_pharmacy, METFORMIN] = 0
-        receivers = [i for i in range(N_PHARMACIES) if i != self.closed_pharmacy]
-        for _ in range(hidden):
-            self.stock[int(rng.choice(receivers)), METFORMIN] += 1
+    def _known(self, site: Site) -> bool:
+        if site.kind == "partner":
+            return bool(self.partner_known[site.site_id])
+        if site.kind == "kiosk":
+            return bool(self.kiosk_known[site.site_id])
+        return True
 
-        holders = [i for i in range(N_PHARMACIES) if self.open_mask[i] and self.stock[i, METFORMIN] > 0]
-        if holders:
-            chosen = int(rng.choice(holders))
-            self.near[chosen, METFORMIN] = 1
+    def _can_buy(self, site: Site) -> bool:
+        if site.kind == "kiosk":
+            return True
+        if site.kind == "public":
+            return True
+        return bool(
+            self.partner_known[site.site_id]
+            and self.partner_open[site.site_id]
+            and self.partner_stock[site.site_id] > 0
+        )
 
-        orders: list[Order] = []
-        next_id = 1
-        for _ in range(URGENT_MET_ORDERS):
-            orders.append(Order(next_id, METFORMIN, 1.0, int(rng.integers(0, 3))))
-            next_id += 1
-        for _ in range(ROUTINE_MET_ORDERS):
-            orders.append(Order(next_id, METFORMIN, 0.25, int(rng.integers(0, 3))))
-            next_id += 1
-        for _ in range(AMOX_ORDERS):
-            orders.append(Order(next_id, AMOXICILLIN, 0.85, int(rng.integers(0, 3))))
-            next_id += 1
-        for _ in range(ORS_ORDERS):
-            orders.append(Order(next_id, ORS, 0.30, int(rng.integers(0, 3))))
-            next_id += 1
-        permutation = rng.permutation(len(orders))
-        self.queue = [orders[int(i)] for i in permutation]
-        self.urgent_met_total = URGENT_MET_ORDERS
+    def _move(self, action: int) -> tuple[float, str]:
+        dx, dy = DELTAS[action]
+        nx, ny = self.px + dx, self.py + dy
+        if not (0 <= nx < COLS and 0 <= ny < ROWS):
+            return -0.2, "blocked"
+        self.px, self.py = nx, ny
+        return -0.01, "walked"
+
+    def _open_app(self) -> tuple[float, str]:
+        if self.app_open:
+            return -0.12, "app_already_open"
+        self.app_open = True
+        self.partner_known[:] = True
+        self.kiosk_known[:] = True
+        return -0.04, "farumasi_opened"
+
+    def _inspect(self) -> tuple[float, str]:
+        site = self.sites.get((self.px, self.py))
+        if site is None:
+            return -0.15, "nothing_to_inspect"
+        if site.kind == "partner":
+            self.partner_known[site.site_id] = True
+        elif site.kind == "kiosk":
+            self.kiosk_known[site.site_id] = True
+        return 0.02, "inspected"
+
+    def _buy(self) -> tuple[float, str, bool]:
+        site = self.sites.get((self.px, self.py))
+        if site is None:
+            return -0.2, "nothing_to_buy", False
+        if site.kind == "kiosk":
+            self.poisoned = True
+            self.health = 0.0
+            return -4.0, "harmful_product", True
+        if site.kind == "public":
+            self.health = max(0.0, self.health - 0.08)
+            self.obtained = True
+            self.bought_public = True
+            return 1.15 + 0.35 * self.health, "public_dispensed", True
+        if not self.partner_known[site.site_id]:
+            return -0.25, "unknown_shelf", False
+        if not self.partner_open[site.site_id] or self.partner_stock[site.site_id] <= 0:
+            return -0.4, "out_of_stock", False
+        self.partner_stock[site.site_id] -= 1
+        self.obtained = True
+        self.bought_partner = True
+        travelled = abs(self.px - self.home[0]) + abs(self.py - self.home[1])
+        reward = 2.15 - 0.55 * (site.price - 1.0) - 0.03 * travelled + 0.45 * self.health
+        return reward, "genuine_dispensed", True
 
     def _apply_restock(self) -> None:
-        self.restocked = True
-        open_ids = [i for i in range(N_PHARMACIES) if self.open_mask[i]]
-        lowest = min(int(self.stock[i, METFORMIN]) for i in open_ids)
-        choices = [i for i in open_ids if int(self.stock[i, METFORMIN]) == lowest]
-        pick = int(self.np_random.choice(choices))
-        self.stock[pick, METFORMIN] += 1
-        self.restock_pharmacy = pick
-
-    def _dispense(self, pharmacy_id: int, order: Order) -> tuple[float, str]:
-        can = bool(self.open_mask[pharmacy_id] and self.stock[pharmacy_id, order.med] > 0)
-        if not can:
-            order.strikes += 1
-            if order.strikes >= 2:
-                reward = -1.0 + self._fail_penalty(order)
-                self._drop_front("fail")
-                return reward, "patient_left"
-            return -1.0, "rejected_dispatch"
-
-        self.stock[pharmacy_id, order.med] -= 1
-        used_expiry = False
-        if self.near[pharmacy_id, order.med] > 0:
-            self.near[pharmacy_id, order.med] -= 1
-            used_expiry = True
-        travel = TRAVEL_MINUTES[order.district][PHARMACIES[pharmacy_id].district_id]
-        price = PHARMACIES[pharmacy_id].price_ratio
-        reward = 1.0
-        reward -= 0.35 * (travel / 45.0)
-        reward += 0.25 * (2.0 - price)
-        if used_expiry:
-            reward += 0.45
-        if order.med == AMOXICILLIN and travel >= 45:
-            reward -= 0.9
-        if order.urgent_metformin:
-            reward += 0.3
-        if order.routine_metformin:
-            reward += 0.15
-        self._drop_front("dispense")
-        return reward, "dispensed"
-
-    def _defer(self, order: Order) -> tuple[float, str]:
-        if order.deferrals >= 2:
-            reward = self._fail_penalty(order)
-            self._drop_front("fail")
-            return reward, "deferred_out"
-        order.deferrals += 1
-        self.queue.append(self.queue.pop(0))
-        wait_cost = 0.22 if order.urgency >= 0.8 else 0.05
-        return -wait_cost, "deferred"
-
-    def _refer(self, order: Order) -> tuple[float, str]:
-        city = self.city_available(order.med)
-        urgent_others = self.count_metformin(urgent=True, exclude_current=True)
-        if city <= 0:
-            reward = 0.55
-        elif order.routine_metformin and city <= urgent_others:
-            reward = -0.2 if not self.restocked else 0.45
-        elif order.urgent_metformin:
-            reward = -2.0
-            self.urgent_met_failed += 1
-        else:
-            reward = -1.1
-        self._drop_front("refer")
-        return reward, "referred"
-
-    def _fail_penalty(self, order: Order) -> float:
-        if order.urgent_metformin:
-            self.urgent_met_failed += 1
-            return -2.5
-        if order.med == AMOXICILLIN:
-            return -1.5
-        return -0.6
-
-    def _drop_front(self, outcome: str) -> None:
-        order = self.queue.pop(0)
-        if outcome == "dispense":
-            self.dispensed += 1
-            if order.urgent_metformin:
-                self.urgent_met_filled += 1
-            elif order.routine_metformin:
-                self.routine_met_filled += 1
-        elif outcome == "refer":
-            self.referred += 1
-
-    def _terminal_bonus(self) -> float:
-        filled_ratio = self.urgent_met_filled / max(1, self.urgent_met_total)
-        leftover_expiry = int(self.near[:, METFORMIN].sum())
-        unmet = self.urgent_met_total - self.urgent_met_filled
-        return 8.0 * filled_ratio - 0.8 * leftover_expiry - 0.5 * unmet
+        if self.steps == RESTOCK_AT and not self.restocked:
+            self.partner_stock[self.restock_id] += 1
+            self.partner_open[self.restock_id] = True
+            self.restocked = True
 
     def _observe(self) -> np.ndarray:
         observation = np.zeros(OBS_DIM, dtype=np.float32)
-        order = self.queue[0] if self.queue else None
         cursor = 0
-        for pharmacy_id, pharmacy in enumerate(PHARMACIES):
-            observation[cursor] = min(1.0, self.stock[pharmacy_id, METFORMIN] / 6.0)
-            observation[cursor + 1] = min(1.0, self.stock[pharmacy_id, AMOXICILLIN] / 8.0)
-            observation[cursor + 2] = min(1.0, self.stock[pharmacy_id, ORS] / 8.0)
-            if order is not None:
-                observation[cursor + 3] = 1.0 if self.near[pharmacy_id, order.med] > 0 else 0.0
-                travel = TRAVEL_MINUTES[order.district][pharmacy.district_id]
-                observation[cursor + 5] = travel / 45.0
-                can = self.open_mask[pharmacy_id] and self.stock[pharmacy_id, order.med] > 0
-                observation[cursor + 7] = 1.0 if can else 0.0
-            observation[cursor + 4] = 1.0 if self.open_mask[pharmacy_id] else 0.0
-            observation[cursor + 6] = (pharmacy.price_ratio - 1.0) / 1.0
-            cursor += PHARM_FEATURES
 
-        if order is not None:
-            observation[cursor + order.med] = 1.0
-            observation[cursor + 3] = float(order.urgency)
-            observation[cursor + 4 + order.district] = 1.0
-            observation[cursor + 7] = min(1.0, self.city_available(order.med) / 8.0)
-            observation[cursor + 13] = min(1.0, order.strikes / 2.0)
-            observation[cursor + 14] = min(1.0, order.deferrals / 2.0)
-            observation[cursor + 17] = 1.0 if any(
-                self.open_mask[i] and self.near[i, order.med] > 0 for i in range(N_PHARMACIES)
-            ) else 0.0
-        observation[cursor + 8] = min(1.0, self.count_metformin(urgent=True, exclude_current=False) / 6.0)
-        observation[cursor + 9] = min(1.0, self.count_metformin(urgent=False, exclude_current=False) / 8.0)
-        observation[cursor + 10] = min(1.0, self.count_metformin(urgent=True, exclude_current=True) / 6.0)
-        observation[cursor + 11] = min(1.0, len(self.queue) / 24.0)
-        observation[cursor + 12] = min(1.0, self.steps / MAX_STEPS)
-        observation[cursor + 15] = 1.0 if order is not None and self.action_mask()[:N_PHARMACIES].sum() > 0 else 0.0
-        observation[cursor + 16] = 0.0 if self.restocked else 1.0
-        mask_start = N_PHARMACIES * PHARM_FEATURES + N_GLOBAL
-        observation[mask_start:] = self.action_mask()
+        def put(value: float) -> None:
+            nonlocal cursor
+            observation[cursor] = _unit(value)
+            cursor += 1
+
+        put(self.px / (COLS - 1))
+        put(self.py / (ROWS - 1))
+        put(self.health)
+        put(self.steps / MAX_STEPS)
+        for med in range(3):
+            put(1.0 if self.med == med else 0.0)
+        put(1.0 if self.med != ORS else 0.4)
+        put(1.0 if self.app_open else 0.0)
+        here = self.sites.get((self.px, self.py))
+        put(1.0 if here is not None else 0.0)
+        put(1.0 if here is not None and self._known(here) else 0.0)
+        put(1.0 if self.restocked else 0.0)
+        for site in PARTNERS:
+            known = bool(self.partner_known[site.site_id])
+            put(_rel(site.x - self.px, COLS - 1))
+            put(_rel(site.y - self.py, ROWS - 1))
+            put((self.partner_stock[site.site_id] / 2.0) if known else 0.0)
+            put((site.price - 1.0) if known else 0.0)
+            available = known and self.partner_open[site.site_id] and self.partner_stock[site.site_id] > 0
+            put(1.0 if available else 0.0)
+            put(1.0 if known else 0.0)
+        for site in KIOSKS:
+            put(_rel(site.x - self.px, COLS - 1))
+            put(_rel(site.y - self.py, ROWS - 1))
+            put(0.25)
+            put(1.0 if self.kiosk_known[site.site_id] else 0.0)
+            put(1.0 if (self.px, self.py) == (site.x, site.y) else 0.0)
+        put(_rel(PUBLIC.x - self.px, COLS - 1))
+        put(_rel(PUBLIC.y - self.py, ROWS - 1))
+        put(1.0)
+        distance = abs(PUBLIC.x - self.px) + abs(PUBLIC.y - self.py)
+        put(distance / 30.0)
+        put(1.0 if here is not None and here.kind == "partner" else 0.0)
+        put(1.0 if here is not None and here.kind == "kiosk" else 0.0)
+        put(1.0 if here is not None and here.kind == "public" else 0.0)
+        put(1.0 if (self.px, self.py) == self.home else 0.0)
+        mask = self.action_mask()
+        observation[cursor : cursor + N_ACTIONS] = mask
         return observation
 
     def _info(self) -> dict:
-        order = self.queue[0] if self.queue else None
-        return {
-            "action_mask": self.action_mask().copy(),
+        site = self.sites.get((self.px, self.py))
+        decision = {
+            "action": "none" if self.last_action < 0 else ACTION_NAMES[self.last_action],
+            "medicine": MED_NAMES[self.med],
+            "pharmacy_name": None if site is None else site.name,
+            "place_kind": None if site is None else site.kind,
+            "health": round(self.health, 3),
+            "farumasi_open": self.app_open,
             "event": self.last_event,
-            "decision": dict(self.last_decision),
-            "stock_metformin": self.stock[:, METFORMIN].astype(int).tolist(),
-            "urgent_met_filled": self.urgent_met_filled,
-            "urgent_met_total": self.urgent_met_total,
-            "routine_met_filled": self.routine_met_filled,
-            "dispensed": self.dispensed,
-            "referred": self.referred,
-            "shift_return": self.return_so_far,
-            "queue_length": len(self.queue),
-            "current_medicine": None if order is None else MED_NAMES[order.med],
-            "current_district": None if order is None else DISTRICT_NAMES[order.district],
-            "restocked": self.restocked,
-            "closed_pharmacy": PHARMACIES[self.closed_pharmacy].name if self.closed_pharmacy >= 0 else None,
         }
-
-    def _decision(self, action: int, order: Order, event: str, reward: float) -> dict:
-        pharmacy_name = PHARMACIES[action].name if action < N_PHARMACIES else None
         return {
-            "action": ACTION_NAMES[action],
-            "action_id": action,
-            "event": event,
-            "reward": round(reward, 4),
-            "order_id": order.order_id,
-            "medicine": MED_NAMES[order.med],
-            "urgency": "high" if order.urgency >= 0.8 else "routine",
-            "patient_district": DISTRICT_NAMES[order.district],
-            "pharmacy_id": action if action < N_PHARMACIES else None,
-            "pharmacy_name": pharmacy_name,
+            "event": self.last_event,
+            "shift_return": self.return_so_far,
+            "decision": decision,
+            "action_mask": self.action_mask(),
+            "health": self.health,
+            "medicine": MED_NAMES[self.med],
         }

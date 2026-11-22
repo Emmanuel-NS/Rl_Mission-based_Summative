@@ -1,8 +1,6 @@
 # FARUMASI shift dispatcher
 
-Reinforcement learning for one morning shift on FARUMASI, the Kigali pharmacy platform. Patients have already sent medicine requests. The agent decides, one request at a time, which partner pharmacy dispenses it, whether to defer it, or whether to refer the patient to a public facility.
-
-Metformin is scarce: four packs, four urgent requests, and five routine refills. A pack used on a routine refill is not there when a later patient is already rationing a dose. That cost is paid when the urgent request fails, and again as a bonus at the end of the shift. A nearest-pharmacy rule does not carry that consequence. The same environment is used for DQN, REINFORCE, PPO, and A2C.
+Reinforcement learning for one patient searching Kigali for a genuine pack. Licensed pharmacies can be closed, expensive, or out of stock. Unlicensed stalls advertise the same medicine cheaply, and buying there is harmful. FARUMASI is an action the patient can take: open the app and every partner shelf updates live, while every stall is marked unlicensed. The same map is used for DQN, REINFORCE, PPO, and A2C.
 
 ## Setup
 
@@ -38,19 +36,17 @@ After the sweep, `models/best_agent.pt` is the greedy policy with the highest me
 uv run python play.py --episodes 3 --seed 1000
 ```
 
-This opens the Kigali dispatch window and prints every decision in the terminal: action, reward, running return, medicine, and pharmacy. `--heuristic` plays the hand-written rule on the same window.
+This opens the Kigali map and prints every step in the terminal. The window advances once a second so the walk can be watched. `--heuristic` plays the hand-written patient, who opens FARUMASI and then crosses toward a licensed shelf.
 
 ## What the agent observes and does
 
-Actions, in order: dispense at Nyamirambo Community, Kigali City Pharmacy, Remera Care, Kimironko Health Mart, Kicukiro Centre, Gikondo Pharmacy, defer the request, refer to a public facility.
+Actions, in order: north, east, south, west, open FARUMASI, inspect the building you are standing on, buy.
 
-`uv run python main.py --describe` prints every observation index, its range, and where the number comes from. Stock, opening hours, travel time, list price, and the legal-action mask are updated on every decision. The mask is the last eight values. Closed pharmacies and empty shelves are not legal dispense actions.
+`uv run python main.py --describe` prints every observation index. Partner stock and price stay hidden until the app is opened or that pharmacy is inspected. Stall positions and their cheap advertised price are visible immediately. The licence is not. The legal-action mask is the last seven values.
 
-A shift starts with a shuffled morning queue, one pharmacy closed, four metformin packs on the open pharmacies, and one near-expiry metformin pack. A one-pack drop arrives after eight decisions. The shift ends when the queue is empty, or after 72 decisions.
+A search starts at a corner of the city. The pharmacies in that district are closed or empty. The genuine packs are across Kigali, and on step 14 a nearby partner receives one pack, which FARUMASI shows if the app is open. Three stalls will sell something harmful. Health falls on every step. The search ends when the patient buys a genuine pack, buys from a stall, runs out of health, or reaches 64 steps.
 
-The reward pays for a completed dispense, subtracts travel and a high list price, and adds a bonus for using a near-expiry pack. Deferring an urgent request costs more than deferring a routine one. Referring a patient who could have been served is penalised. The large bonus for urgent metformin filled, and the penalty for a near-expiry pack still on the shelf, are added only when the shift ends.
-
-Each learned decision is also a JSON record (`pharmacy_id`, medicine, urgency, district, reward). That is the payload a FARUMASI partner screen can store or send on.
+The reward pays most for a nearby affordable licensed pack, less for the public clinic, and a large penalty for a harmful product. Opening FARUMASI costs a little time and reveals the safe shelves.
 
 ## Layout
 
@@ -72,4 +68,4 @@ tests/
 
 ## Video
 
-From this folder, with the camera and the whole screen shared: say what FARUMASI is dispatching, what the agent is trying to do, and how the reward treats a scarce metformin pack. Then run `uv run python play.py --episodes 3 --seed 1000` and leave the window and the terminal visible for most of the recording. Point at one defer or referral where the agent keeps a pack, and read the urgent-metformin line at the end of the shift.
+From this folder, with the camera and the whole screen shared: say that the patient has to find a genuine pack, that some stalls are unlicensed, and that FARUMASI shows live stock before the walk. Then run `uv run python play.py --episodes 3 --seed 1000` and leave the map and the terminal visible for most of the recording. The old dispatcher checkpoints do not match this map, so train again before recording the learned agent. `uv run python play.py --heuristic --episodes 3 --seed 1000` shows the hand-written patient on the same map.

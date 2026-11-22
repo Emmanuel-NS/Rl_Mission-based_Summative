@@ -16,7 +16,7 @@ import shutil
 from pathlib import Path
 
 from environment.baselines import compare_baselines
-from environment.custom_env import observation_catalogue
+from environment.custom_env import ENV_VERSION, observation_catalogue
 from environment.rendering import save_environment_png
 from training.common import evaluate, heuristic_reference, load_checkpoint, promote_best, resolve_device
 from training.dqn_training import train_dqn
@@ -59,8 +59,10 @@ def run_one(algo: str, config: dict, args) -> dict:
     model_path = _model_path(algo, int(config["id"]))
     summary_path = log_dir / "summary.json"
     if summary_path.exists() and model_path.exists() and not args.force:
-        print(f"skip {algo} experiment {config['id']}: already finished", flush=True)
-        return json.loads(summary_path.read_text(encoding="utf-8"))
+        previous = json.loads(summary_path.read_text(encoding="utf-8"))
+        if previous.get("env_version") == ENV_VERSION:
+            print(f"skip {algo} experiment {config['id']}: already finished", flush=True)
+            return previous
     print(f"\n=== {algo} experiment {config['id']}: {config['name']} ===", flush=True)
     summary = TRAINERS[algo](
         config,

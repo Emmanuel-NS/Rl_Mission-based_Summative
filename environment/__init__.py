@@ -1,4 +1,4 @@
-"""FARUMASI shift-dispatch environment."""
+"""FARUMASI patient-search environment."""
 
 from environment.custom_env import (
     ACTION_NAMES,

@@ -1,9 +1,8 @@
-"""Greedy dispatcher used as a reference line, not as a learned agent.
+"""A patient who opens FARUMASI before crossing the city.
 
-It keeps scarce metformin for urgent requests, sends a routine refill to the
-back of the queue while a mid-shift drop is still useful, and otherwise picks
-the open pharmacy that combines a short ride, a lower list price, and a
-near-expiry pack.
+The rule never buys from an unlicensed stall. It reveals live stock, walks to
+the closest affordable partner that actually has the prescription, and uses
+the public clinic only when no licensed shelf can help.
 """
 
 from __future__ import annotations
@@ -11,52 +10,75 @@ from __future__ import annotations
 import numpy as np
 
 from environment.custom_env import (
-    AMOXICILLIN,
-    DEFER,
-    METFORMIN,
-    N_PHARMACIES,
-    PHARMACIES,
-    REFER,
-    TRAVEL_MINUTES,
+    APP,
+    BUY,
+    EAST,
+    KIOSKS,
+    NORTH,
+    PARTNERS,
+    PUBLIC,
+    SOUTH,
+    WEST,
     FarumasiShiftEnv,
 )
 
+DELTAS = ((0, -1), (1, 0), (0, 1), (-1, 0))
+KIOSK_TILES = {(site.x, site.y) for site in KIOSKS}
+
 
 def legal_random_action(env: FarumasiShiftEnv, rng: np.random.Generator) -> int:
-    mask = env.action_mask()
-    choices = np.flatnonzero(mask > 0.5)
+    choices = np.flatnonzero(env.action_mask() > 0.5)
     return int(rng.choice(choices))
 
 
-def heuristic_action(env: FarumasiShiftEnv) -> int:
-    order = env.queue[0]
+def _steps_onto_kiosk(env: FarumasiShiftEnv, action: int) -> bool:
+    dx, dy = DELTAS[action]
+    return (env.px + dx, env.py + dy) in KIOSK_TILES
+
+
+def _toward(env: FarumasiShiftEnv, tx: int, ty: int) -> int:
     mask = env.action_mask()
-    if order.routine_metformin:
-        urgent_others = env.count_metformin(urgent=True, exclude_current=True)
-        city = env.city_available(METFORMIN)
-        if city <= urgent_others:
-            urgent_behind = urgent_others
-            if urgent_behind > 0 and mask[DEFER] > 0.5:
-                return DEFER
-            return REFER
-    best_id = None
+    horizontal = []
+    vertical = []
+    if tx > env.px:
+        horizontal.append(EAST)
+    elif tx < env.px:
+        horizontal.append(WEST)
+    if ty > env.py:
+        vertical.append(SOUTH)
+    elif ty < env.py:
+        vertical.append(NORTH)
+    order = horizontal + vertical if abs(tx - env.px) >= abs(ty - env.py) else vertical + horizontal
+    order += [NORTH, EAST, SOUTH, WEST]
+    for action in order:
+        if mask[action] > 0.5 and not _steps_onto_kiosk(env, action):
+            return action
+    return int(np.flatnonzero(mask > 0.5)[0])
+
+
+def heuristic_action(env: FarumasiShiftEnv) -> int:
+    mask = env.action_mask()
+    if not env.app_open and mask[APP] > 0.5:
+        return APP
+    here = env.sites.get((env.px, env.py))
+    target = _target(env)
+    if here is not None and (here.x, here.y) == (target.x, target.y) and mask[BUY] > 0.5:
+        return BUY
+    return _toward(env, target.x, target.y)
+
+
+def _target(env: FarumasiShiftEnv):
+    best = None
     best_score = 1e9
-    for pharmacy_id in range(N_PHARMACIES):
-        if mask[pharmacy_id] < 0.5:
+    for site in PARTNERS:
+        if not env.partner_open[site.site_id] or env.partner_stock[site.site_id] <= 0:
             continue
-        pharmacy = PHARMACIES[pharmacy_id]
-        travel = TRAVEL_MINUTES[order.district][pharmacy.district_id]
-        score = float(travel) + 18.0 * pharmacy.price_ratio
-        if env.near[pharmacy_id, order.med] > 0:
-            score -= 22.0
-        if order.med == AMOXICILLIN and travel >= 45:
-            score += 25.0
+        distance = abs(site.x - env.px) + abs(site.y - env.py)
+        score = distance + 6.0 * (site.price - 1.0)
         if score < best_score:
+            best = site
             best_score = score
-            best_id = pharmacy_id
-    if best_id is None:
-        return REFER
-    return best_id
+    return PUBLIC if best is None else best
 
 
 def episode_return(policy: str, seed: int) -> float:
@@ -88,4 +110,5 @@ def compare_baselines(n_seeds: int = 30, start_seed: int = 0) -> dict[str, float
         "heuristic_mean": float(np.mean(heuristic_scores)),
         "heuristic_std": float(np.std(heuristic_scores)),
         "gap": float(np.mean(heuristic_scores) - np.mean(random_scores)),
+        "kiosks": float(len(KIOSKS)),
     }

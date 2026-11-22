@@ -1,8 +1,4 @@
-"""Pygame view of one FARUMASI dispatch shift.
-
-The window is the view used in play.py: three Kigali districts, six partner
-pharmacies, the request at the front of the queue, and the running return.
-"""
+"""Top-down Kigali search map for the FARUMASI patient."""
 
 from __future__ import annotations
 
@@ -11,56 +7,62 @@ import os
 import numpy as np
 
 from environment.custom_env import (
-    AMOXICILLIN,
+    COLS,
+    DISTRICT_NAMES,
+    KIOSKS,
     MED_NAMES,
-    METFORMIN,
-    N_PHARMACIES,
-    ORS,
-    PHARMACIES,
+    PARTNERS,
+    PUBLIC,
+    ROWS,
     FarumasiShiftEnv,
 )
 
-WIDTH = 1200
-HEIGHT = 720
-BG = (245, 242, 234)
-INK = (28, 32, 28)
-GREEN = (18, 84, 66)
-CARD = (255, 252, 247)
-MUTED = (90, 96, 90)
+WIDTH, HEIGHT = 1280, 760
+MAP_LEFT, MAP_TOP = 28, 78
+MAP_W, MAP_H = 860, 640
+
+INK = (28, 38, 34)
+PAPER = (244, 239, 228)
+GREEN = (15, 118, 110)
+GREEN_DARK = (12, 74, 68)
 AMBER = (180, 83, 9)
-TEAL = (14, 116, 144)
-LEAF = (22, 101, 52)
-ALERT = (153, 27, 27)
-LINE = (220, 214, 204)
+RED = (153, 27, 27)
+BLUE = (29, 78, 216)
+CARD = (255, 252, 247)
+LINE = (214, 206, 192)
+PATIENT = (217, 119, 6)
+DISTRICT_TINT = ((228, 236, 226), (226, 234, 244), (246, 236, 220))
 
 
-class DispatchRenderer:
-    def __init__(self) -> None:
+class MapRenderer:
+    def __init__(self, human: bool) -> None:
+        self.human = human
         self._pygame = None
         self.screen = None
-        self.clock = None
         self.font = None
         self.small = None
         self.bold = None
-
-    def render(self, env: FarumasiShiftEnv, human: bool):
-        pygame = self._ensure(human)
-        self._draw(env)
-        if human:
-            pygame.display.flip()
-            self.clock.tick(env.metadata["render_fps"])
-            return None
-        frame = pygame.surfarray.array3d(self.screen)
-        return np.transpose(frame, (1, 0, 2))
+        self.clock = None
 
     def close(self) -> None:
         if self._pygame is not None and self.screen is not None:
             self._pygame.display.quit()
             self.screen = None
 
-    def _ensure(self, human: bool):
-        if not human:
+    def draw(self, env: FarumasiShiftEnv):
+        pygame = self._ensure()
+        self._scene(env)
+        if self.human:
+            pygame.display.flip()
+            self.clock.tick(env.metadata["render_fps"])
+            return None
+        frame = pygame.surfarray.array3d(self.screen)
+        return np.transpose(frame, (1, 0, 2))
+
+    def _ensure(self):
+        if not self.human:
             os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+            os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
         if self._pygame is None:
             import pygame
 
@@ -69,97 +71,138 @@ class DispatchRenderer:
             self._pygame = pygame
             self.font = pygame.font.SysFont("segoeui", 18)
             self.small = pygame.font.SysFont("segoeui", 14)
-            self.bold = pygame.font.SysFont("segoeui", 22, bold=True)
+            self.bold = pygame.font.SysFont("segoeui", 24, bold=True)
             self.clock = pygame.time.Clock()
-        if self.screen is None:
-            flags = 0 if human else self._pygame.HIDDEN
-            self.screen = self._pygame.display.set_mode((WIDTH, HEIGHT), flags)
-            self._pygame.display.set_caption("FARUMASI shift dispatcher")
+            flags = 0 if self.human else pygame.HIDDEN
+            self.screen = pygame.display.set_mode((WIDTH, HEIGHT), flags)
+            pygame.display.set_caption("FARUMASI — find a genuine pack")
         return self._pygame
 
-    def _draw(self, env: FarumasiShiftEnv) -> None:
+    def _scene(self, env: FarumasiShiftEnv) -> None:
         pygame = self._pygame
-        self.screen.fill(BG)
+        self.screen.fill(PAPER)
         header = pygame.Rect(0, 0, WIDTH, 64)
-        pygame.draw.rect(self.screen, GREEN, header)
-        self._text("FARUMASI", 24, 18, (255, 255, 255), self.bold)
-        self._text("Kigali partner shift  ·  metformin is scarce", 160, 22, (214, 232, 224), self.font)
+        pygame.draw.rect(self.screen, GREEN_DARK, header)
+        self._text("FARUMASI", 28, 10, (255, 255, 255), self.bold)
+        self._text("Live pharmacy search  ·  Kigali", 28, 38, (214, 235, 228), self.small)
+        self._map(env)
+        self._panel(env)
 
-        districts = ("Nyarugenge", "Gasabo", "Kicukiro")
-        for column, district in enumerate(districts):
-            left = 24 + column * 250
-            self._text(district, left, 80, GREEN, self.bold)
-            pharmacies = [pharmacy for pharmacy in PHARMACIES if pharmacy.district_id == column]
-            for row, pharmacy in enumerate(pharmacies):
-                self._pharmacy_card(env, pharmacy, left, 112 + row * 210)
-
-        panel = pygame.Rect(780, 80, 396, 616)
-        pygame.draw.rect(self.screen, CARD, panel, border_radius=12)
-        pygame.draw.rect(self.screen, LINE, panel, width=1, border_radius=12)
-        self._text("Current request", 800, 96, GREEN, self.bold)
-        order = env.queue[0] if env.queue else None
-        if order is None:
-            self._text("Shift complete", 800, 132, INK, self.font)
-        else:
-            kind = "urgent" if order.urgency >= 0.8 else "routine"
-            district = ("Nyarugenge", "Gasabo", "Kicukiro")[order.district]
-            self._text(f"#{order.order_id}  {MED_NAMES[order.med]}", 800, 132, INK, self.font)
-            self._text(f"{kind}   ·   {district}", 800, 158, MUTED, self.small)
-            self._text(f"deferrals {order.deferrals}    strikes {order.strikes}", 800, 180, MUTED, self.small)
-        self._text(f"Last action   {env.last_event}", 800, 214, INK, self.small)
-        self._text(f"Step reward   {env.last_reward:+.2f}", 800, 236, INK, self.small)
-        self._text(f"Shift return  {env.return_so_far:+.2f}", 800, 258, INK, self.font)
-        filled = f"{env.urgent_met_filled}/{env.urgent_met_total}"
-        self._text(f"Urgent metformin filled   {filled}", 800, 286, AMBER, self.small)
-        restock = "arrived" if env.restocked else "pending"
-        self._text(f"Mid-shift metformin drop   {restock}", 800, 308, MUTED, self.small)
-        if env.closed_pharmacy >= 0:
-            self._text(f"Closed today   {PHARMACIES[env.closed_pharmacy].name}", 800, 330, ALERT, self.small)
-
-        self._text("Queue", 800, 368, GREEN, self.bold)
-        for row, line in enumerate(env.queue_preview(7)):
-            self._text(line, 800, 398 + row * 22, INK, self.small)
-        self._text("Objective: fill urgent metformin without emptying the shelf early.", 800, 640, MUTED, self.small)
-
-    def _pharmacy_card(self, env: FarumasiShiftEnv, pharmacy, left: int, top: int) -> None:
+    def _map(self, env: FarumasiShiftEnv) -> None:
         pygame = self._pygame
-        rect = pygame.Rect(left, top, 230, 190)
-        chosen = env.last_action == pharmacy.pharmacy_id and env.last_event == "dispensed"
-        border = AMBER if chosen else LINE
-        pygame.draw.rect(self.screen, CARD, rect, border_radius=10)
-        pygame.draw.rect(self.screen, border, rect, width=2 if chosen else 1, border_radius=10)
-        self._text(pharmacy.name, left + 12, top + 10, INK, self.small)
-        status = "open" if env.open_mask[pharmacy.pharmacy_id] else "closed"
-        status_color = LEAF if status == "open" else ALERT
-        self._text(status, left + 12, top + 32, status_color, self.small)
-        self._text(f"price ×{pharmacy.price_ratio:.2f}", left + 120, top + 32, MUTED, self.small)
-        stocks = (
-            (METFORMIN, "Metformin", AMBER, env.stock[pharmacy.pharmacy_id, METFORMIN], 6),
-            (AMOXICILLIN, "Amoxicillin", TEAL, env.stock[pharmacy.pharmacy_id, AMOXICILLIN], 8),
-            (ORS, "ORS", LEAF, env.stock[pharmacy.pharmacy_id, ORS], 8),
-        )
-        for row, (med, label, color, amount, cap) in enumerate(stocks):
-            y = top + 64 + row * 36
-            self._text(label, left + 12, y, MUTED, self.small)
-            bar = pygame.Rect(left + 100, y + 4, 110, 10)
-            pygame.draw.rect(self.screen, LINE, bar, border_radius=4)
-            width = int(110 * min(1.0, amount / cap))
-            if width > 0:
-                pygame.draw.rect(self.screen, color, pygame.Rect(left + 100, y + 4, width, 10), border_radius=4)
-            expiry = "  exp" if env.near[pharmacy.pharmacy_id, med] > 0 else ""
-            self._text(str(int(amount)) + expiry, left + 12, y + 16, INK, self.small)
+        tile_w = MAP_W / COLS
+        tile_h = MAP_H / ROWS
+        for col in range(COLS):
+            district = 0 if col < 5 else 1 if col < 10 else 2
+            rect = pygame.Rect(MAP_LEFT + col * tile_w, MAP_TOP, tile_w + 1, MAP_H)
+            pygame.draw.rect(self.screen, DISTRICT_TINT[district], rect)
+        for col in range(COLS + 1):
+            x = MAP_LEFT + col * tile_w
+            pygame.draw.line(self.screen, (232, 226, 214), (x, MAP_TOP), (x, MAP_TOP + MAP_H), 1)
+        for row in range(ROWS + 1):
+            y = MAP_TOP + row * tile_h
+            pygame.draw.line(self.screen, (232, 226, 214), (MAP_LEFT, y), (MAP_LEFT + MAP_W, y), 1)
+        for col in (7, 14):
+            x = MAP_LEFT + col * tile_w
+            pygame.draw.line(self.screen, LINE, (x, MAP_TOP), (x, MAP_TOP + MAP_H), 4)
+        for index, name in enumerate(DISTRICT_NAMES):
+            self._text(name, MAP_LEFT + int((0, 7, 14)[index] * tile_w) + 8, MAP_TOP + tile_h + 6, GREEN_DARK, self.font)
+        home_x = MAP_LEFT + (env.home[0] + 0.5) * tile_w
+        home_y = MAP_TOP + (env.home[1] + 0.5) * tile_h
+        pygame.draw.circle(self.screen, (120, 113, 100), (int(home_x), int(home_y)), 7)
+        self._text("home", int(home_x) - 16, int(home_y) + 10, INK, self.small)
+        for site in (*PARTNERS, *KIOSKS, PUBLIC):
+            self._building(env, site, tile_w, tile_h)
+        self._patient(env, tile_w, tile_h)
 
-    def _text(self, text: str, x: int, y: int, color: tuple[int, int, int], font) -> None:
-        surface = font.render(text, True, color)
+    def _building(self, env: FarumasiShiftEnv, site, tile_w: float, tile_h: float) -> None:
+        pygame = self._pygame
+        cx = MAP_LEFT + (site.x + 0.5) * tile_w
+        cy = MAP_TOP + (site.y + 0.5) * tile_h
+        rect = pygame.Rect(0, 0, 46, 34)
+        rect.center = (cx, cy - 6)
+        if site.kind == "partner":
+            known = bool(env.partner_known[site.site_id])
+            stock = int(env.partner_stock[site.site_id]) if known else None
+            colour = GREEN if stock else (120, 140, 136) if known else GREEN
+            pygame.draw.rect(self.screen, colour, rect, border_radius=6)
+            pygame.draw.line(self.screen, CARD, (cx, cy - 18), (cx, cy + 2), 3)
+            pygame.draw.line(self.screen, CARD, (cx - 8, cy - 8), (cx + 8, cy - 8), 3)
+            label = site.name.split()[0]
+            if known:
+                label = f"{label} {stock}"
+        elif site.kind == "kiosk":
+            pygame.draw.rect(self.screen, AMBER, rect, border_radius=4)
+            if env.kiosk_known[site.site_id]:
+                pygame.draw.rect(self.screen, RED, rect, width=3, border_radius=4)
+                label = "unsafe"
+            else:
+                label = "cheap"
+        else:
+            pygame.draw.rect(self.screen, BLUE, rect, border_radius=6)
+            label = "clinic"
+        self._text(label, rect.x - 4, rect.bottom + 1, INK, self.small)
+
+    def _patient(self, env: FarumasiShiftEnv, tile_w: float, tile_h: float) -> None:
+        pygame = self._pygame
+        cx = int(MAP_LEFT + (env.px + 0.5) * tile_w)
+        cy = int(MAP_TOP + (env.py + 0.5) * tile_h)
+        pygame.draw.circle(self.screen, (255, 244, 214), (cx, cy), 14)
+        pygame.draw.circle(self.screen, PATIENT, (cx, cy), 14, 3)
+        pygame.draw.circle(self.screen, INK, (cx, cy - 3), 3)
+
+    def _panel(self, env: FarumasiShiftEnv) -> None:
+        pygame = self._pygame
+        panel = pygame.Rect(910, 78, 346, 640)
+        pygame.draw.rect(self.screen, CARD, panel, border_radius=16)
+        pygame.draw.rect(self.screen, LINE, panel, width=1, border_radius=16)
+        self._text("Prescription", 932, 94, INK, self.bold)
+        self._text(MED_NAMES[env.med], 932, 126, GREEN_DARK, self.font)
+        self._bar(932, 160, 300, env.health, RED if env.health < 0.35 else GREEN)
+        self._text(f"Health {env.health:.0%}", 932, 176, INK, self.small)
+        phone = pygame.Rect(932, 214, 300, 280)
+        pygame.draw.rect(self.screen, (22, 32, 30), phone, border_radius=18)
+        if env.app_open:
+            self._text("FARUMASI live", 948, 228, (167, 243, 208), self.font)
+            y = 258
+            for site in PARTNERS:
+                stock = int(env.partner_stock[site.site_id])
+                open_ = bool(env.partner_open[site.site_id])
+                state = f"{stock} in stock" if open_ and stock else "unavailable"
+                self._text(f"{site.name[:22]}  {state}", 948, y, (236, 253, 245), self.small)
+                y += 28
+            self._text("Stalls marked unlicensed", 948, 450, (254, 202, 202), self.small)
+        else:
+            self._text("FARUMASI", 948, 250, (167, 243, 208), self.bold)
+            self._text("App is closed.", 948, 292, (214, 235, 228), self.font)
+            self._text("Open it to see which licensed", 948, 324, (214, 235, 228), self.small)
+            self._text("pharmacies have this medicine.", 948, 346, (214, 235, 228), self.small)
+        self._text(env.last_event.replace("_", " "), 932, 520, INK, self.font)
+        self._text(f"Step reward {env.last_reward:+.2f}    search {env.return_so_far:+.2f}", 932, 552, INK, self.small)
+        self._text("Avoid a cheap stall. A licensed pack", 932, 600, GREEN_DARK, self.small)
+        self._text("is the only safe way to finish.", 932, 622, GREEN_DARK, self.small)
+        self._text(f"Step {env.steps}", 932, 660, INK, self.small)
+
+    def _bar(self, x: int, y: int, width: int, fraction: float, colour: tuple[int, int, int]) -> None:
+        pygame = self._pygame
+        pygame.draw.rect(self.screen, LINE, pygame.Rect(x, y, width, 12), border_radius=6)
+        inner = max(0, int(width * fraction))
+        if inner:
+            pygame.draw.rect(self.screen, colour, pygame.Rect(x, y, inner, 12), border_radius=6)
+
+    def _text(self, text: str, x: int, y: int, colour: tuple[int, int, int], font) -> None:
+        surface = font.render(text, True, colour)
         self.screen.blit(surface, (x, y))
 
 
 def save_environment_png(path: str, seed: int = 0) -> str:
-    """Write one frame of the shift so the report has an environment visual."""
+    """Write one frame of the search so the report has an environment visual."""
     os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+    os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
     env = FarumasiShiftEnv(render_mode="rgb_array")
     env.reset(seed=seed)
-    env.step(2)
+    env.step(4)
+    env.step(1)
     frame = env.render()
     env.close()
     import pygame

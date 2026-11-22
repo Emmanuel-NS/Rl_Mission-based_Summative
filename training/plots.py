@@ -8,6 +8,8 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
+from environment.custom_env import ENV_VERSION
+
 ALGOS = ("dqn", "reinforce", "ppo", "a2c")
 COLOURS = {
     "dqn": "#0f766e",
@@ -28,7 +30,9 @@ def _read_csv(path: Path) -> list[dict[str, float]]:
 def _summaries(log_root: Path) -> list[dict]:
     found = []
     for path in sorted(log_root.glob("*/*/summary.json")):
-        found.append(json.loads(path.read_text(encoding="utf-8")))
+        item = json.loads(path.read_text(encoding="utf-8"))
+        if item.get("env_version") == ENV_VERSION:
+            found.append(item)
     return found
 
 

@@ -34,7 +34,7 @@ def play_heuristic(episodes: int, seed: int) -> None:
             done = terminated or truncated
             step += 1
         print(
-            f"filled urgent metformin {env.urgent_met_filled}/{env.urgent_met_total}  "
+            f"genuine pack {env.urgent_met_filled}/{env.urgent_met_total}  "
             f"return {env.return_so_far:+.2f}"
         )
         env.close()
@@ -53,8 +53,8 @@ def play_agent(path: str, episodes: int, seed: int, device_name: str) -> None:
                 f"return {row['shift_return']:+7.2f}  {row['medicine']} -> {row['pharmacy']}"
             )
         print(
-            f"filled urgent metformin {summary['urgent_met_filled']}/{summary['urgent_met_total']}  "
-            f"dispensed {summary['dispensed']}  referred {summary['referred']}  "
+            f"genuine pack {summary['urgent_met_filled']}/{summary['urgent_met_total']}  "
+            f"licensed pharmacy {summary['dispensed']}  public clinic {summary['referred']}  "
             f"return {summary['return']:+.2f}"
         )
 

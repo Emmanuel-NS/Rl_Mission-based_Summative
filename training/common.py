@@ -11,7 +11,7 @@ import torch
 from torchrl.modules import MLP
 
 from environment.baselines import heuristic_action
-from environment.custom_env import N_ACTIONS, OBS_DIM, FarumasiShiftEnv
+from environment.custom_env import ENV_VERSION, N_ACTIONS, OBS_DIM, FarumasiShiftEnv
 
 EVAL_SEEDS = tuple(range(1000, 1020))
 
@@ -162,6 +162,11 @@ def load_checkpoint(path: str | Path, device: torch.device):
         payload = torch.load(path, map_location=device, weights_only=False)
     except TypeError:
         payload = torch.load(path, map_location=device)
+    matrices = [value for value in payload["state_dict"].values() if getattr(value, "ndim", 0) == 2]
+    if not any(int(value.shape[1]) == OBS_DIM for value in matrices):
+        raise RuntimeError(
+            "This checkpoint belongs to the old dispatcher. Train the patient-map environment again."
+        )
     net = make_policy_net(int(payload["hidden"]))
     net.load_state_dict(payload["state_dict"])
     net.to(device)
@@ -170,6 +175,8 @@ def load_checkpoint(path: str | Path, device: torch.device):
 
 
 def write_summary(directory: Path, summary: dict) -> None:
+    summary = dict(summary)
+    summary["env_version"] = ENV_VERSION
     (directory / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     (directory / "config.json").write_text(json.dumps(summary["config"], indent=2), encoding="utf-8")
 
@@ -178,6 +185,8 @@ def promote_best(log_root: Path = Path("logs"), model_root: Path = Path("models"
     best = None
     for path in log_root.glob("*/*/summary.json"):
         summary = json.loads(path.read_text(encoding="utf-8"))
+        if summary.get("env_version") != ENV_VERSION:
+            continue
         if best is None or summary.get("best_eval_return", -1e9) > best.get("best_eval_return", -1e9):
             best = summary
     if best is None:
