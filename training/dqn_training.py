@@ -168,7 +168,8 @@ def train_dqn(
                     f"  eval {row['eval_return']}  urgent {row['eval_urgent_fill']}"
                     if row["eval_return"]
                     else ""
-                )
+                ),
+                flush=True,
             )
     finally:
         log.close()

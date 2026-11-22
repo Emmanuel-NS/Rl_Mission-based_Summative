@@ -3,14 +3,16 @@
 uv run python main.py
     short PPO run so a fresh clone executes without extra setup
 
-uv run python main.py --sweep all --device cuda --frames 100000
-    the T4 sweep: 10 settings for DQN, REINFORCE, PPO, and A2C
+uv run python main.py --sweep all --device cpu --frames 20000
+    10 settings for DQN, REINFORCE, PPO, and A2C
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
+import shutil
 from pathlib import Path
 
 from environment.baselines import compare_baselines
@@ -39,15 +41,28 @@ def _log_dir(algo: str, experiment: int) -> Path:
     return Path("logs") / algo / f"experiment_{experiment:02d}"
 
 
+def sync_backup() -> None:
+    raw = os.environ.get("FARUMASI_BACKUP", "").strip()
+    if not raw:
+        return
+    target = Path(raw)
+    target.mkdir(parents=True, exist_ok=True)
+    for name in ("logs", "models"):
+        source = Path(name)
+        if source.exists():
+            shutil.copytree(source, target / name, dirs_exist_ok=True)
+    print(f"saved progress to {target}", flush=True)
+
+
 def run_one(algo: str, config: dict, args) -> dict:
     log_dir = _log_dir(algo, int(config["id"]))
     model_path = _model_path(algo, int(config["id"]))
     summary_path = log_dir / "summary.json"
     if summary_path.exists() and model_path.exists() and not args.force:
-        print(f"skip {algo} experiment {config['id']}: already finished")
+        print(f"skip {algo} experiment {config['id']}: already finished", flush=True)
         return json.loads(summary_path.read_text(encoding="utf-8"))
-    print(f"\n=== {algo} experiment {config['id']}: {config['name']} ===")
-    return TRAINERS[algo](
+    print(f"\n=== {algo} experiment {config['id']}: {config['name']} ===", flush=True)
+    summary = TRAINERS[algo](
         config,
         total_frames=args.frames,
         device=resolve_device(args.device),
@@ -56,6 +71,8 @@ def run_one(algo: str, config: dict, args) -> dict:
         model_path=model_path,
         eval_every=args.eval_every,
     )
+    sync_backup()
+    return summary
 
 
 def run_sweep(args) -> None:
@@ -75,6 +92,7 @@ def run_sweep(args) -> None:
     print("Heuristic on the same held-out shifts:", reference)
     print("Figures:", figures)
     print("Tables:", table)
+    sync_backup()
 
 
 def describe() -> None:
@@ -91,7 +109,7 @@ def demo(args) -> None:
         net, payload = load_checkpoint(best_path, device)
         scores = evaluate(net, device)
         print(json.dumps({"checkpoint": payload.get("algo"), "experiment": payload.get("config", {}).get("id"), **scores}, indent=2))
-        print("Full T4 sweep: uv run python main.py --sweep all --device cuda --frames 100000")
+        print("Full sweep: uv run python main.py --sweep all --device cpu --frames 20000 --eval-every 5000")
         return
     config = next(item for item in EXPERIMENTS["ppo"] if item["id"] == 1)
     args.frames = min(args.frames, 4096)
@@ -100,7 +118,7 @@ def demo(args) -> None:
     promote_best()
     print(json.dumps(summary, indent=2))
     print("This was a short check. The assignment sweep is:")
-    print("uv run python main.py --sweep all --device cuda --frames 100000")
+    print("uv run python main.py --sweep all --device cpu --frames 20000 --eval-every 5000")
 
 
 def main() -> None:

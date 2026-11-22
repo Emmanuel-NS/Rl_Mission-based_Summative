@@ -16,18 +16,18 @@ uv run python main.py --screenshot
 
 `uv run python main.py` with no arguments evaluates `models/best_agent.pt` when that file exists. On a fresh clone it trains the baseline PPO setting for 4096 frames so the project runs after `uv sync`.
 
-## Full training on a Colab T4
+## Full training
 
-The comparison used in the report is 10 settings for each algorithm, 100,000 environment frames each, on the same shifts and the same held-out seeds (1000–1019). Open `colab_train.ipynb` on a T4 runtime. The sweep command is:
+The comparison used in the report is 10 settings for each algorithm, 20,000 environment frames each, on the same shifts and the same held-out seeds (1000–1019). Open `colab_train.ipynb` on a normal CPU runtime. The pharmacy step is Python and the network is small, so a T4 does not make the sweep faster and the free GPU quota runs out before the files can be downloaded.
 
 ```powershell
-uv run python main.py --sweep all --device cuda --frames 100000
+uv run python main.py --sweep all --device cpu --frames 20000 --eval-every 5000
 ```
 
 One algorithm, one setting:
 
 ```powershell
-uv run python main.py --sweep ppo --experiment 1 --device cuda --frames 100000
+uv run python main.py --sweep ppo --experiment 1 --device cpu --frames 20000
 ```
 
 After the sweep, `models/best_agent.pt` is the greedy policy with the highest mean return on the held-out shifts. Curves and tables are written to `logs/figures/` and `logs/experiment_tables.md`. A finished experiment is skipped if you start the sweep again, so a Colab disconnect does not throw away completed runs. Pass `--force` to train that setting again.
