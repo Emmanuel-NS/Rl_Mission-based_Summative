@@ -176,17 +176,17 @@ def _loop(
                 "entropy": f"{entropy_value:.6f}",
                 "epsilon": "",
                 "eval_return": "",
-                "eval_urgent_fill": "",
+                "eval_success": "",
                 "grad_norm": f"{grad_norm:.6f}",
             }
             if frame >= next_eval:
                 _snapshot(loss, actor, net)
                 scores = evaluate(net, device)
                 row["eval_return"] = f"{scores['eval_return']:.6f}"
-                row["eval_urgent_fill"] = f"{scores['eval_urgent_fill']:.6f}"
+                row["eval_success"] = f"{scores['eval_success']:.6f}"
                 if scores["eval_return"] > best_return:
                     best_return = scores["eval_return"]
-                    best_fill = scores["eval_urgent_fill"]
+                    best_fill = scores["eval_success"]
                     save_checkpoint(
                         model_path,
                         {
@@ -204,7 +204,7 @@ def _loop(
                 f"loss {loss_value:.4f}  entropy {entropy_value:.3f}  "
                 f"train {train_return if train_return is not None else float('nan'):.2f}"
                 + (
-                    f"  eval {row['eval_return']}  urgent {row['eval_urgent_fill']}"
+                    f"  eval {row['eval_return']}  success {row['eval_success']}"
                     if row["eval_return"]
                     else ""
                 ),
@@ -218,7 +218,7 @@ def _loop(
         _snapshot(loss, actor, net)
         scores = evaluate(net, device)
         best_return = scores["eval_return"]
-        best_fill = scores["eval_urgent_fill"]
+        best_fill = scores["eval_success"]
         save_checkpoint(
             model_path,
             {
@@ -235,7 +235,7 @@ def _loop(
         "config": config,
         "frames": frame,
         "best_eval_return": best_return,
-        "best_urgent_fill": best_fill,
+        "best_success": best_fill,
         "seconds": round(time.perf_counter() - started, 2),
         "device": str(device),
     }

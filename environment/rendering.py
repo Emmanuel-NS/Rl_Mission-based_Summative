@@ -60,8 +60,14 @@ FEET_Y = 462
 BUILDING_X = 860
 BIKE_X = 250
 START_X = 440
-LOBBY_RECEPTION_X = 930
-LOBBY_PATIENT_X = 600
+SHELTER_BIKE_X = 650  # the bike is parked under the shelter ...
+SHELTER_FROM_X = 770  # ... the rider steps off beside it ...
+SHELTER_X = 880  # ... and waits a little further in
+AWNING = (480, 1000)  # left and right edge of the shelter roof: it covers the bike and the rider
+AWNING_TOP, AWNING_BOTTOM = 212, 246
+LOBBY_RECEPTION_X = 330
+LOBBY_ENTER_X = 110
+MEET_INT_X = 600
 INT_COUNTER_X = 650
 INT_ENTER_X = 240
 INT_FEET_Y = 508
@@ -76,6 +82,10 @@ BLUE = (37, 99, 235)
 CARD = (252, 250, 246)
 MUTED = (110, 120, 116)
 TRAFFIC_COLOURS = ((74, 190, 112), (250, 204, 21), (249, 115, 22), (220, 38, 38))
+CAR_LEN = 66
+CAR_PITCH = 78
+CARS_PER_LANE = (1, 2, 3, 4)
+TRAFFIC_SPEED = (4.2, 2.4, 0.9, 0.3)
 
 FAIL_EVENTS = {"rx_violation", "medicine_ruined", "order_cancelled", "delivery_abandoned"}
 
@@ -133,8 +143,17 @@ class DeliveryRenderer:
         self.rider_off = (0.0, 0.0)
         self.cars: list[dict] = []
         self._traffic_key = b""
+        self._geo: list[tuple] = []
+        self._car_rng = random.Random(77)
+        self.pose_r: int | None = None
+        self.pose_p: int | None = None
+        self.patient_walking = False
+        self.patient_phase = 0
         self._rain = []
         self._car_cache: dict[tuple[int, int], object] = {}
+        self._road_state: dict = {}
+        self.moving = False  # True while the bike is rolling, so the next ride does not start from a standstill
+        self.rain_on = False
 
     # ------------------------------------------------------------- lifecycle
 
@@ -190,7 +209,15 @@ class DeliveryRenderer:
         self.rider_int = [load(f"rider_{i}", height=262) for i in range(4)]
         self.patient_ext = [load(f"patient_{i}", height=186) for i in range(4)]
         self.patient_int = [load(f"patient_{i}", height=246) for i in range(4)]
-        self.bike_top = load("bike_top", height=108)
+        self.rider_pose = {
+            "ext": [load(f"rider_stand_{i}", height=206) for i in range(4)],
+            "int": [load(f"rider_stand_{i}", height=268) for i in range(4)],
+        }
+        self.patient_pose = {
+            "ext": [pygame.transform.flip(load(f"patient_stand_{i}", height=190), True, False) for i in range(3)],
+            "int": [pygame.transform.flip(load(f"patient_stand_{i}", height=250), True, False) for i in range(3)],
+        }
+        self.bike_top = load("bike_top", height=62)
         covered = self.bike_top.copy()
         w, h = covered.get_size()
         tarp = pygame.Rect(int(w * 0.1), int(h * 0.69), int(w * 0.8), int(h * 0.31))
@@ -198,7 +225,7 @@ class DeliveryRenderer:
         pygame.draw.line(covered, (92, 140, 204), (tarp.left + 4, tarp.top + 5), (tarp.right - 4, tarp.top + 5), 2)
         pygame.draw.line(covered, (92, 140, 204), (tarp.left + 4, tarp.centery), (tarp.right - 4, tarp.centery), 1)
         self.bike_top_covered = covered
-        self.car_art = [load(f"car_{i}", height=64) for i in range(4)]
+        self.car_art = [load(f"car_{i}", height=66) for i in range(4)]
 
         def cover_image(name: str, height: int):
             image = pygame.image.load(str(SPRITES / f"{name}.jpg")).convert()
@@ -215,7 +242,7 @@ class DeliveryRenderer:
         self.sky = sky.subsurface((0, 0, WIDTH, SIDEWALK_TOP)).copy()
         self.interior = {
             "pharmacy": cover_image("pharmacy_interior", 720),
-            "lobby": cover_image("lobby_interior", 720),
+            "lobby": pygame.transform.flip(cover_image("lobby_interior", 720), True, False),
         }
         self.world = city_map.build_city(pygame, self._font).convert()
         self.landmarks = city_map.landmarks()
@@ -224,7 +251,16 @@ class DeliveryRenderer:
         self._rain = [(rng.uniform(0, WIDTH), rng.uniform(0, VIEW_H), rng.uniform(14, 26)) for _ in range(150)]
         px, py = city_map.node_px(PHARMACY_NODE)
         self.city_pos = (float(px), float(py))
-        self.rider_off = (0.0, 17.0)
+        self.rider_off = self._lane_offset(-90.0, PHARMACY_NODE)
+        self._geo = [city_map.edge_geometry(edge) for edge in range(N_EDGES)]
+
+    @staticmethod
+    def _lane_offset(heading: float, node: int) -> tuple[float, float]:
+        """Where the rider sits across the road: in the kerb-side lane, on the right."""
+        horizontal = abs(math.sin(math.radians(heading))) > 0.5
+        reach = city_map.bike_lane_offset(city_map.lane_half(node, horizontal))
+        ux, uy = -math.sin(math.radians(heading)), -math.cos(math.radians(heading))
+        return (-uy * reach, ux * reach)
 
     # --------------------------------------------------------------- drawing
 
@@ -265,6 +301,9 @@ class DeliveryRenderer:
         self.bike_x = BIKE_X
         self.rider_face = 1
         self.walking = False
+        self.patient_walking = False
+        self.pose_r = None
+        self.pose_p = None
         if phase == P_OUTSIDE:
             self.scene, self.building, self.rider_x = "ext", "pharmacy", START_X
         elif phase == P_INSIDE:
@@ -273,37 +312,52 @@ class DeliveryRenderer:
             self.scene = "city"
             px, py = city_map.node_px(env.node)
             self.city_pos = (float(px), float(py))
+            prev = getattr(env, "prev_node", env.node)
+            if prev != env.node:
+                qx, qy = city_map.node_px(prev)
+                self.heading = {(0, -1): 0.0, (1, 0): -90.0, (0, 1): 180.0, (-1, 0): 90.0}[(int(np.sign(px - qx)), int(np.sign(py - qy)))]
+                self.rider_off = self._lane_offset(self.heading, prev)
         elif phase == P_ENTRANCE:
             self.scene, self.building, self.rider_x = "ext", kind, START_X
         elif phase == P_BUILDING:
             if kind == "home":
-                self.scene, self.building, self.rider_x = "ext", kind, self._gate_x()
-                self.gate_open, self.patient_x = True, self._door_x() + 40
+                self.scene, self.building, self.rider_x = "ext", kind, self._meet("ext")[0] - 60
+                self.gate_open, self.patient_x = True, self._meet("ext")[1]
             else:
                 self.scene, self.building, self.rider_x, self.bike_x = "int", "lobby", LOBBY_RECEPTION_X, None
         else:
-            if kind == "home":
-                self.scene, self.building, self.rider_x = "ext", kind, self._door_x() - 130
-                self.gate_open, self.patient_x = True, self._door_x() + 40
-            else:
-                self.scene, self.building, self.rider_x, self.bike_x = "int", "lobby", LOBBY_PATIENT_X - 130, None
-                self.patient_x = LOBBY_PATIENT_X
+            home = kind == "home"
+            self.scene, self.building = ("ext", kind) if home else ("int", "lobby")
+            if not home:
+                self.bike_x = None
+            self.rider_x, self.patient_x = self._meet(self.scene)
+            self.gate_open = home
+            self.pose_r = 3 if env.handed else 0
+            self.pose_p = 2 if env.handed else 0
 
     def _gate_x(self) -> float:
         return BUILDING_X + 0.21 * self.building_art["home"].get_width()
 
-    def _door_x(self) -> float:
-        return BUILDING_X + 0.02 * self.building_art["home"].get_width()
+    def _meet(self, scene: str) -> tuple[float, float]:
+        """Where the rider and the patient stand, body centre, when they meet."""
+        if scene == "int":
+            return float(MEET_INT_X), float(MEET_INT_X + 185)
+        patient = self._gate_x() - 10
+        return patient - 140, patient
 
     def _plan(self, env: FarumasiRiderEnv) -> list[tuple]:
         action, event, kind = env.last_action, env.last_event, env.dest.kind
         plan: list[tuple] = []
         if event == "invalid":
             return [("hold", 12, "invalid")]
+        if self.scene == "shelter" and action not in (COVER, WAIT):
+            plan += self._leave_shelter()
         if action <= 3:
-            frames = int(min(100, 18 + 10 * env.last_minutes))
-            plan.append(("ride", env.prev_node, env.node, frames))
-            plan.append(("hold", 30 if env.last_wet else 12, "wet" if env.last_wet else None))
+            frames = int(min(110, 24 + 11 * env.last_minutes))
+            # the bike keeps rolling through junctions; a warning appears while it moves
+            plan.append(("ride", env.prev_node, env.node, frames, "wet" if env.last_wet else None))
+        elif action in (COVER, WAIT) and self.scene in ("city", "shelter"):
+            plan += self._shelter_plan(env, action)
         elif action == COVER:
             plan.append(("hold", 42, "covered_box"))
         elif action == WAIT:
@@ -319,7 +373,7 @@ class DeliveryRenderer:
             px, py = city_map.node_px(PHARMACY_NODE)
             plan += [
                 ("hold", 60, "order_collected"),
-                ("fade", {"scene": "city", "city_pos": (float(px), float(py)), "heading": -90.0, "rider_off": (0.0, 17.0)}),
+                ("fade", {"scene": "city", "city_pos": (float(px), float(py)), "heading": -90.0, "rider_off": self._lane_offset(-90.0, PHARMACY_NODE)}),
                 ("hold", 16, None),
             ]
         elif action == PARK:
@@ -329,43 +383,56 @@ class DeliveryRenderer:
             ]
         elif action == KNOCK:
             if kind == "home":
+                rider_at, patient_at = self._meet("ext")
                 plan += [
-                    ("walk", self.rider_x, self._gate_x(), 42),
-                    ("set", {"gate_open": True, "patient_x": self._door_x() + 40}),
+                    ("walk", self.rider_x, rider_at - 60, 42),
+                    ("hold", 24, None),
+                    ("set", {"gate_open": True, "patient_x": patient_at, "pose_p": 0}),
                     ("hold", 58, "gate_opened"),
                 ]
             else:
                 plan += [
                     ("walk", self.rider_x, BUILDING_X, 40),
-                    ("fade", {"scene": "int", "building": "lobby", "rider_x": 250, "bike_x": None}),
-                    ("walk", 250, LOBBY_RECEPTION_X, 44),
+                    ("fade", {"scene": "int", "building": "lobby", "rider_x": LOBBY_ENTER_X, "bike_x": None}),
+                    ("walk", LOBBY_ENTER_X, LOBBY_RECEPTION_X, 44),
                     ("hold", 56, "checked_in"),
                 ]
         elif action == CARRY:
             if kind == "home":
-                plan += [("walk", self.rider_x, self._door_x() - 130, 46), ("hold", 26, "reached_patient")]
-            else:
                 plan += [
-                    ("set", {"patient_x": LOBBY_PATIENT_X}),
-                    ("walk", self.rider_x, LOBBY_PATIENT_X - 130, 48),
-                    ("hold", 26, "reached_patient"),
+                    ("walk", self.rider_x, self._meet("ext")[0], 30),
+                    ("set", {"pose_r": 0, "pose_p": 0}),
+                    ("hold", 36, "reached_patient"),
+                ]
+            else:
+                rider_at, patient_at = self._meet("int")
+                plan += [
+                    ("meet", rider_at, WIDTH + 80, patient_at, 64),
+                    ("set", {"pose_r": 0, "pose_p": 0}),
+                    ("hold", 36, "reached_patient"),
                 ]
         elif action == VERIFY:
             plan.append(("hold", 66, event))
         elif action == HAND:
-            plan.append(("hold", 50, "handed_over"))
+            plan += [
+                ("set", {"pose_r": 1, "pose_p": 1}),
+                ("hold", 26, None),
+                ("set", {"pose_r": 3, "pose_p": 2}),
+                ("hold", 50, "handed_over"),
+            ]
         elif action == SCAN:
             plan += [("hold", 84, "scan"), ("hold", 100, "mission_passed")]
         elif action == REMOUNT:
             px, py = city_map.node_px(env.node)
             plan += [
+                ("set", {"pose_r": None}),
                 ("walk", self.rider_x, 120, 42, -1),
-                ("fade", {"scene": "city", "city_pos": (float(px), float(py)), "heading": 90.0, "rider_off": (0.0, -17.0)}),
+                ("fade", {"scene": "city", "city_pos": (float(px), float(py)), "heading": 90.0, "rider_off": self._lane_offset(90.0, env.node), "patient_x": None, "pose_p": None}),
                 ("hold", 22, "returning"),
             ]
         elif action == RETURN_MEDS:
             plan += [
-                ("fade", {"scene": "int", "building": "pharmacy", "rider_x": INT_ENTER_X, "bike_x": None, "rider_face": 1}),
+                ("fade", {"scene": "int", "building": "pharmacy", "rider_x": INT_ENTER_X, "bike_x": None, "rider_face": 1, "patient_x": None, "pose_r": None, "pose_p": None}),
                 ("walk", INT_ENTER_X, INT_COUNTER_X, 32),
                 ("hold", 72, "returned_to_pharmacy"),
                 ("hold", 100, "mission_returned"),
@@ -374,9 +441,49 @@ class DeliveryRenderer:
             plan.append(("hold", 110, "fail"))
         return plan
 
+    def _shelter_plan(self, env: FarumasiRiderEnv, action: int) -> list[tuple]:
+        """Waiting and covering the box happen off the road, under one roof that covers bike and rider.
+
+        The rider goes in once and stays there while the agent keeps waiting or covering. The
+        way back to the road is only played when the agent rides on (see _leave_shelter).
+        """
+        if action == COVER:
+            popup, stay = "covered_box", 40
+        else:
+            popup, stay = ("sheltering" if env.raining else "waited"), 36
+        if self.scene == "shelter":
+            return [("set", {"pose_r": 0}), ("hold", stay, popup)]
+        self._road_state = {
+            "scene": "city",
+            "city_pos": self.city_pos,
+            "heading": self.heading,
+            "rider_off": self.rider_off,
+            "bike_x": BIKE_X,
+            "pose_r": None,
+            "patient_x": None,
+            "pose_p": None,
+            "rider_face": 1,
+        }
+        return [
+            ("fade", {"scene": "shelter", "building": "home", "rider_x": float(SHELTER_FROM_X), "bike_x": SHELTER_BIKE_X, "patient_x": None, "pose_r": None, "pose_p": None, "rider_face": 1, "gate_open": False}),
+            ("walk", float(SHELTER_FROM_X), float(SHELTER_X), 20),
+            ("set", {"pose_r": 0}),
+            ("hold", stay, popup),
+        ]
+
+    def _leave_shelter(self) -> list[tuple]:
+        """Back to the bike and out onto the road, exactly where the rider left it."""
+        return [
+            ("set", {"pose_r": None}),
+            ("walk", float(SHELTER_X), float(SHELTER_FROM_X), 20),
+            ("fade", dict(self._road_state)),
+        ]
+
     def _play(self, env: FarumasiRiderEnv, plan: list[tuple]) -> None:
         for segment in plan:
             kind = segment[0]
+            if kind != "ride":
+                self.moving = False
             if kind == "set":
                 self.__dict__.update(segment[1])
             elif kind == "hold":
@@ -397,6 +504,25 @@ class DeliveryRenderer:
                     self._present()
                 self.rider_x = x1
                 self.walking = False
+            elif kind == "meet":
+                # the rider steps up while the patient walks in from the side
+                _, rider_to, patient_from, patient_to, frames = segment
+                rider_from = self.rider_x
+                self.rider_face = 1
+                self.walking = True
+                self.patient_walking = True
+                self.patient_x = float(patient_from)
+                for frame in range(frames):
+                    progress = _ease(frame / max(1, frames - 1))
+                    self.rider_x = rider_from + (rider_to - rider_from) * progress
+                    self.patient_x = patient_from + (patient_to - patient_from) * progress
+                    self.phase_walk += 1
+                    self.patient_phase += 1
+                    self._frame(env, popup=None, t=0.0)
+                    self._present()
+                self.rider_x, self.patient_x = float(rider_to), float(patient_to)
+                self.walking = False
+                self.patient_walking = False
             elif kind == "fade":
                 self.walking = False
                 for frame in range(10):
@@ -410,31 +536,87 @@ class DeliveryRenderer:
                     self._present()
                 self.fade = 0.0
             elif kind == "ride":
-                self._ride(env, segment[1], segment[2], segment[3])
+                self._ride(env, segment[1], segment[2], segment[3], segment[4] if len(segment) > 4 else None)
 
-    def _ride(self, env: FarumasiRiderEnv, a: int, b: int, frames: int) -> None:
+    @staticmethod
+    def _travel(progress: float, from_rest: bool, to_rest: bool) -> float:
+        """Distance covered, 0 to 1. The bike only speeds up or slows down when it starts or ends a trip."""
+        a = 0.25 if from_rest else 0.0
+        d = 0.25 if to_rest else 0.0
+        v = 1.0 / (1.0 - a / 2.0 - d / 2.0)
+        if a > 0.0 and progress < a:
+            return v * progress * progress / (2.0 * a)
+        if d > 0.0 and progress > 1.0 - d:
+            return 1.0 - v * (1.0 - progress) ** 2 / (2.0 * d)
+        return v * (progress - a / 2.0)
+
+    def _ride(self, env: FarumasiRiderEnv, a: int, b: int, frames: int, popup: str | None = None) -> None:
         ax, ay = city_map.node_px(a)
         bx, by = city_map.node_px(b)
         dx, dy = bx - ax, by - ay
         heading = {(0, -1): 0.0, (1, 0): -90.0, (0, 1): 180.0, (-1, 0): 90.0}[(int(np.sign(dx)), int(np.sign(dy)))]
-        offset = {0.0: (17.0, 0.0), -90.0: (0.0, 17.0), 180.0: (-17.0, 0.0), 90.0: (0.0, -17.0)}[heading]
+        offset = self._lane_offset(heading, a)
         old_heading, old_offset = self.heading, self.rider_off
         turn = ((heading - old_heading + 180.0) % 360.0) - 180.0
         self.walking = False
+        horizontal = dx != 0
+        box = (city_map.ROAD_W // 2) if horizontal else city_map.road_half(b // COLS)
+        length = abs(dx) + abs(dy)
+        waited = 0
+        previous = 0.0
+        from_rest = not self.moving
+        to_rest = b == env.target_node  # only slow down where the trip really ends
+        if from_rest:
+            while waited < 60 and self._junction_busy(a, horizontal):  # let crossing cars clear before pulling out
+                waited += 1
+                self._frame(env, popup=None, t=0.0)
+                self._present()
         for frame in range(frames):
-            progress = frame / max(1, frames - 1)
+            progress = (frame + 1) / frames
+            # stop short of a junction while cross traffic is still clearing it
+            before = length * (1.0 - self._travel(previous, from_rest, to_rest))
+            after = length * (1.0 - self._travel(progress, from_rest, to_rest))
+            while before > box + 30 >= after and waited < 60 and self._junction_busy(b, horizontal):
+                waited += 1
+                self._frame(env, popup=None, t=0.0)
+                self._present()
+            previous = progress
             lead = _ease(min(1.0, progress * 5.0))
             self.heading = old_heading + turn * lead
             self.rider_off = (
                 old_offset[0] + (offset[0] - old_offset[0]) * lead,
                 old_offset[1] + (offset[1] - old_offset[1]) * lead,
             )
-            move = _ease(progress)
+            move = self._travel(progress, from_rest, to_rest)
             self.city_pos = (ax + dx * move, ay + dy * move)
-            self._frame(env, popup=None, t=0.0)
+            show = popup if popup is not None and progress > 0.5 else None
+            self._frame(env, popup=show, t=min(1.0, (progress - 0.5) * 2.0))
             self._present()
         self.heading, self.rider_off = heading, offset
         self.city_pos = (float(bx), float(by))
+        self.moving = not to_rest
+
+    def _junction_busy(self, node: int, rider_horizontal: bool) -> bool:
+        """True while a car on the crossing road is inside this junction."""
+        nx, ny = city_map.node_px(node)
+        reach_x = city_map.ROAD_W // 2 + 14
+        reach_y = city_map.road_half(node // COLS) + 14
+        for car in self.cars:
+            if car["alpha"] < 0.5:
+                continue
+            ax, ay, bx, by, length, horizontal, half, _ja, _jb = self._geo[car["edge"]]
+            if horizontal == rider_horizontal:
+                continue
+            if car["dir"] > 0:
+                sx, sy, ux, uy = ax, ay, (bx - ax) / length, (by - ay) / length
+            else:
+                sx, sy, ux, uy = bx, by, (ax - bx) / length, (ay - by) / length
+            shift = city_map.car_lane_offset(half)
+            x = sx + ux * car["pos"] - uy * shift
+            y = sy + uy * car["pos"] + ux * shift
+            if abs(x - nx) < reach_x + CAR_LEN / 2 * abs(ux) and abs(y - ny) < reach_y + CAR_LEN / 2 * abs(uy):
+                return True
+        return False
 
     def _static_popup(self, env: FarumasiRiderEnv):
         event = env.last_event
@@ -451,11 +633,14 @@ class DeliveryRenderer:
     # ---------------------------------------------------------------- frames
 
     def _frame(self, env: FarumasiRiderEnv, popup, t: float) -> None:
+        self.rain_on = env.raining
         if self.scene == "city":
             self._city(env)
         else:
             self._side_scene(env)
-        if self.scene != "int":
+        if self.scene == "shelter":
+            self._porch(env)
+        elif self.scene != "int":
             if env.raining:
                 self._rain_layer(0.55)
             elif env.rain_soon:
@@ -488,37 +673,130 @@ class DeliveryRenderer:
     # -------------------------------------------------------------- city view
 
     def _sync_traffic(self, env: FarumasiRiderEnv) -> None:
-        key = env.traffic.tobytes()
-        if key == self._traffic_key or self._pygame is None:
+        """Keep every road stocked with about as many cars as its traffic level asks for."""
+        if self._pygame is None:
             return
-        self._traffic_key = key
-        rng = random.Random(77)
-        cars = []
+        rng = self._car_rng
+        first = not self.cars
         for edge in range(N_EDGES):
+            _ax, _ay, _bx, _by, length, _h, _half, junction_a, junction_b = self._geo[edge]
             level = int(env.traffic[edge])
-            a, b = edge_nodes(edge)
-            ax, ay = city_map.node_px(a)
-            bx, by = city_map.node_px(b)
-            length = math.hypot(bx - ax, by - ay) - 150
-            per_lane = (1, 2, 4, 4)[level]
-            speed = (4.2, 2.4, 0.8, 0.0)[level]
-            for lane in (1, -1):
-                for k in range(per_lane):
-                    cars.append(
-                        {
-                            "edge": edge,
-                            "lane": lane,
-                            "s": (k + rng.uniform(0.0, 0.5)) * length / per_lane,
-                            "length": length,
-                            "speed": speed * rng.uniform(0.9, 1.1),
-                            "art": rng.randrange(4),
-                        }
-                    )
-        self.cars = cars
+            for direction in (1, -1):
+                start = junction_a if direction > 0 else junction_b
+                end = junction_b if direction > 0 else junction_a
+                room = length - start - end - 56  # stay short of the stop line
+                if level == 3:
+                    room = length / 2 - 60 - start
+                wanted = max(1, min(CARS_PER_LANE[level], int(room // CAR_PITCH)))
+                lane = [car for car in self.cars if car["edge"] == edge and car["dir"] == direction]
+                if first:
+                    for k in range(wanted):
+                        slot = room / wanted
+                        self.cars.append(self._new_car(edge, direction, start + 20 + slot * (k + rng.uniform(0.0, 0.1)), 1.0))
+                elif len(lane) < wanted and self.tick % 24 == 0:
+                    if all(car["pos"] > start + CAR_PITCH for car in lane):
+                        self.cars.append(self._new_car(edge, direction, float(start), 0.0))
+
+    def _new_car(self, edge: int, direction: int, pos: float, alpha: float) -> dict:
+        rng = self._car_rng
+        return {"edge": edge, "dir": direction, "pos": pos, "v": 0.0, "art": rng.randrange(4), "pace": rng.uniform(0.92, 1.08), "alpha": alpha}
+
+    @staticmethod
+    def _signal_green(horizontal: bool, tick: int) -> bool:
+        phase = tick % 390
+        return phase < 120 if horizontal else 195 <= phase < 315
+
+    def _next_lane(self, edge: int, direction: int) -> tuple[int, int, bool]:
+        """The road a car drives onto after the junction: straight on, or round to the far side of the map."""
+        a, b = edge_nodes(edge)
+        far, near = (b, a) if direction > 0 else (a, b)
+        step = far - near
+        ahead = far + step
+        horizontal = abs(step) == 1
+        inside = 0 <= ahead < COLS * ROWS and (not horizontal or ahead // COLS == far // COLS)
+        if inside:
+            return edge_id(far, ahead), (1 if ahead > far else -1), False
+        if horizontal:
+            row = far // COLS
+            first, last = row * COLS, row * COLS + COLS - 1
+        else:
+            col = far % COLS
+            first, last = col, (ROWS - 1) * COLS + col
+        if step > 0:
+            return edge_id(first, first + step), 1, True
+        return edge_id(last + step, last), -1, True
+
+    def _step_cars(self, env: FarumasiRiderEnv) -> None:
+        """Move the traffic one frame. Cars keep a gap, stop at red, and give way to the rider."""
+        lanes: dict[tuple[int, int], list[dict]] = {}
+        for car in self.cars:
+            lanes.setdefault((car["edge"], car["dir"]), []).append(car)
+        rider_x = self.city_pos[0] + self.rider_off[0]
+        rider_y = self.city_pos[1] + self.rider_off[1]
+        heading = math.radians(self.heading)
+        rider_ux, rider_uy = -math.sin(heading), -math.cos(heading)
+        moved: list[tuple[dict, int, int]] = []
+        for (edge, direction), group in lanes.items():
+            ax, ay, bx, by, length, horizontal, half, junction_a, junction_b = self._geo[edge]
+            far_junction = junction_b if direction > 0 else junction_a
+            stop_line = length - far_junction - CAR_LEN / 2 - 8
+            if direction > 0:
+                sx, sy, ux, uy = ax, ay, (bx - ax) / length, (by - ay) / length
+            else:
+                sx, sy, ux, uy = bx, by, (ax - bx) / length, (ay - by) / length
+            speed = TRAFFIC_SPEED[int(env.traffic[edge])] * (0.8 if env.raining else 1.0)
+            red = not self._signal_green(horizontal, self.tick)
+            blocked = int(env.traffic[edge]) == 3
+            group.sort(key=lambda car: -car["pos"])
+            leader = None
+            next_edge, next_dir, _wrapped = self._next_lane(edge, direction)
+            beyond = [other["pos"] for other in lanes.get((next_edge, next_dir), ())]
+            start_box = junction_a if direction > 0 else junction_b
+            exit_blocked = bool(beyond) and min(beyond) < far_junction + CAR_LEN / 2 + CAR_PITCH + 8  # never block the junction
+            far_x, far_y = city_map.node_px(edge_nodes(edge)[1 if direction > 0 else 0])
+            far_row = edge_nodes(edge)[1 if direction > 0 else 0] // COLS
+            rider_in_box = abs(rider_x - far_x) < city_map.ROAD_W // 2 + 30 and abs(rider_y - far_y) < city_map.road_half(far_row) + 30
+            crossing = abs(ux * rider_ux + uy * rider_uy) < 0.5 or min(abs(rider_ux), abs(rider_uy)) > 0.12
+            exit_blocked = exit_blocked or (rider_in_box and crossing)  # wait for the rider to clear the junction
+            for car in group:
+                if leader is None and beyond:
+                    # the last car of the road ahead counts as the leader across the junction
+                    gap = (length - car["pos"]) + min(beyond) - CAR_PITCH
+                    limit_ahead = max(0.0, gap)
+                else:
+                    limit_ahead = None
+                limit = speed * car["pace"]
+                if car["pos"] > stop_line or car["pos"] < start_box + CAR_LEN / 2:
+                    limit = max(limit, 3.0)  # nobody dawdles inside the junction
+                if leader is not None:
+                    limit = min(limit, max(0.0, leader["pos"] - car["pos"] - CAR_PITCH))
+                elif limit_ahead is not None:
+                    limit = min(limit, limit_ahead)
+                if (red or exit_blocked) and car["pos"] <= stop_line + 0.5:
+                    limit = min(limit, max(0.0, stop_line - car["pos"]))
+                if blocked and car["pos"] <= length / 2 - CAR_LEN / 2 - 14:
+                    limit = min(limit, max(0.0, length / 2 - CAR_LEN / 2 - 14 - car["pos"]))
+                car["v"] = min(limit, car["v"] + 0.18)
+                car["pos"] += car["v"]
+                car["alpha"] = min(1.0, car["alpha"] + 0.05)
+                leader = car
+                if car["pos"] >= length - 6:
+                    moved.append((car, edge, direction))
+        for car, edge, direction in moved:
+            next_edge, next_dir, wrapped = self._next_lane(edge, direction)
+            ahead = [other["pos"] for other in self.cars if other["edge"] == next_edge and other["dir"] == next_dir and other is not car]
+            if ahead and min(ahead) < CAR_PITCH + 6:
+                car["pos"] = self._geo[edge][4] - 7
+                car["v"] = 0.0
+                continue
+            car["edge"], car["dir"] = next_edge, next_dir
+            car["pos"] = 0.0
+            if wrapped:
+                car["alpha"] = 0.0
 
     def _car_sprite(self, art: int, angle: int):
         key = (art, angle)
-        if key not in self._car_cache:
+        if key not in self._car_cache:  # rotated once, then reused every frame
             self._car_cache[key] = self._pygame.transform.rotate(self.car_art[art], angle)
         return self._car_cache[key]
 
@@ -533,21 +811,21 @@ class DeliveryRenderer:
         layer.fill((0, 0, 0, 0))
         for edge in range(N_EDGES):
             level = int(env.traffic[edge])
-            a, b = edge_nodes(edge)
-            ax, ay = city_map.node_px(a)
-            bx, by = city_map.node_px(b)
-            horizontal = ay == by
-            half = (city_map.road_half(ay_row(ay)) if horizontal else city_map.ROAD_W // 2) - 3
-            rect = pygame.Rect(min(ax, bx) - cam_x + 44, min(ay, by) - cam_y - half, abs(bx - ax) - 88, half * 2)
-            if not horizontal:
-                rect = pygame.Rect(ax - cam_x - half, min(ay, by) - cam_y + 56, half * 2, abs(by - ay) - 112)
+            if level == 0:
+                continue
+            ax, ay, bx, by, length, horizontal, half, junction_a, junction_b = self._geo[edge]
+            reach = half - city_map.BIKE_LANE - 2
+            if horizontal:
+                rect = pygame.Rect(ax + junction_a - cam_x, ay - cam_y - reach, length - junction_a - junction_b, reach * 2)
+            else:
+                rect = pygame.Rect(ax - cam_x - reach, ay + junction_a - cam_y, reach * 2, length - junction_a - junction_b)
             if rect.right < 0 or rect.left > WIDTH or rect.bottom < 0 or rect.top > VIEW_H:
                 continue
-            if level > 0:
-                tint = TRAFFIC_COLOURS[level]
-                pygame.draw.rect(layer, (*tint, 74), rect, border_radius=10)
+            pygame.draw.rect(layer, (*TRAFFIC_COLOURS[level], 74), rect, border_radius=10)
         self.screen.blit(layer, (0, 0))
 
+        self._sync_traffic(env)
+        self._step_cars(env)
         for car in self.cars:
             self._draw_car(car, cam_x, cam_y)
         for edge in range(N_EDGES):
@@ -558,41 +836,31 @@ class DeliveryRenderer:
         self._rider_top(env, cam_x, cam_y)
 
     def _draw_car(self, car: dict, cam_x: int, cam_y: int) -> None:
-        a, b = edge_nodes(car["edge"])
-        ax, ay = city_map.node_px(a)
-        bx, by = city_map.node_px(b)
-        span = max(1.0, car["length"])
-        s = (car["s"] + car["speed"] * self.tick) % span
-        if car["lane"] < 0:
-            s = span - s
-        fraction = (s + 75) / (span + 150)
-        x = ax + (bx - ax) * fraction
-        y = ay + (by - ay) * fraction
-        horizontal = ay == by
-        if horizontal:
-            east = car["lane"] > 0
-            y += 20 if east else -20
-            angle = -90 if east else 90
+        ax, ay, bx, by, length, _horizontal, half, _ja, _jb = self._geo[car["edge"]]
+        if car["dir"] > 0:
+            sx, sy, ux, uy = ax, ay, (bx - ax) / length, (by - ay) / length
         else:
-            south = car["lane"] > 0
-            x += -20 if south else 20
-            angle = 180 if south else 0
-        sx, sy = int(x - cam_x), int(y - cam_y)
-        if -80 < sx < WIDTH + 80 and -80 < sy < VIEW_H + 80:
+            sx, sy, ux, uy = bx, by, (ax - bx) / length, (ay - by) / length
+        shift = city_map.car_lane_offset(half)
+        x = sx + ux * car["pos"] - uy * shift
+        y = sy + uy * car["pos"] + ux * shift
+        px, py = int(x - cam_x), int(y - cam_y)
+        if -90 < px < WIDTH + 90 and -90 < py < VIEW_H + 90:
+            angle = int(round(math.degrees(math.atan2(-ux, -uy))))
             sprite = self._car_sprite(car["art"], angle)
-            shade = self._pygame.Surface(sprite.get_size(), self._pygame.SRCALPHA)
-            self.screen.blit(sprite, sprite.get_rect(center=(sx, sy)))
+            if car["alpha"] < 1.0:
+                sprite = sprite.copy()
+                sprite.set_alpha(int(255 * car["alpha"]))
+            self.screen.blit(sprite, sprite.get_rect(center=(px, py)))
 
     def _barrier(self, edge: int, cam_x: int, cam_y: int) -> None:
         pygame = self._pygame
-        a, b = edge_nodes(edge)
-        ax, ay = city_map.node_px(a)
-        bx, by = city_map.node_px(b)
+        ax, ay, bx, by, _length, horizontal, half, _ja, _jb = self._geo[edge]
         x, y = (ax + bx) // 2 - cam_x, (ay + by) // 2 - cam_y
         if not (-100 < x < WIDTH + 100 and -100 < y < VIEW_H + 100):
             return
-        horizontal = ay == by
-        size = (16, 80) if horizontal else (80, 16)
+        across = 2 * (half - city_map.BIKE_LANE) - 4
+        size = (16, across) if horizontal else (across, 16)
         rect = pygame.Rect(0, 0, *size)
         rect.center = (x, y)
         pygame.draw.rect(self.screen, (240, 240, 236), rect, border_radius=3)
@@ -659,8 +927,50 @@ class DeliveryRenderer:
             pygame.draw.polygon(beam, (255, 244, 190, 70), [(80, 80), (30, 0), (130, 0)])
             self.screen.blit(pygame.transform.rotate(beam, self.heading), (x - 80, y - 80))
         self.screen.blit(sprite, sprite.get_rect(center=(int(x), int(y))))
+        if env.raining:
+            self._umbrella_top(x - 4, y - 6)
         if env.last_wet and not self.walking:
             self._text("wet!", x + 26, y - 40, RED, self._font(18, True))
+
+    def _umbrella_top(self, x: float, y: float) -> None:
+        """Seen from above: a green and white umbrella over the rider, on a pole."""
+        pygame = self._pygame
+        radius, slices = 27, 8
+        canopy = pygame.Surface((radius * 2 + 8, radius * 2 + 8), pygame.SRCALPHA)
+        centre = (radius + 4, radius + 4)
+        for k in range(slices):
+            a0 = 2 * math.pi * k / slices + 0.2
+            a1 = 2 * math.pi * (k + 1) / slices + 0.2
+            points = [centre] + [(centre[0] + radius * math.cos(a0 + (a1 - a0) * s / 4), centre[1] + radius * math.sin(a0 + (a1 - a0) * s / 4)) for s in range(5)]
+            pygame.draw.polygon(canopy, (22, 163, 74, 215) if k % 2 == 0 else (250, 250, 246, 215), points)
+        pygame.draw.circle(canopy, (*INK, 255), centre, radius, 2)
+        for k in range(slices):
+            a0 = 2 * math.pi * k / slices + 0.2
+            pygame.draw.line(canopy, (*INK, 255), centre, (centre[0] + radius * math.cos(a0), centre[1] + radius * math.sin(a0)), 1)
+        pygame.draw.circle(canopy, (*INK, 255), centre, 3)
+        shadow = pygame.Surface(canopy.get_size(), pygame.SRCALPHA)
+        pygame.draw.circle(shadow, (0, 0, 0, 60), centre, radius)
+        self.screen.blit(shadow, (x - centre[0] + 9, y - centre[1] + 9))
+        self.screen.blit(canopy, (x - centre[0], y - centre[1]))
+
+    def _umbrella_side(self, x: float, head_y: float) -> None:
+        """Seen from the side: the rider walks in the rain under an umbrella."""
+        pygame = self._pygame
+        radius, rise = 84, 46
+        cy = head_y - 6
+        slices = 5
+        for k in range(slices):
+            a0 = math.pi * k / slices
+            a1 = math.pi * (k + 1) / slices
+            points = [(x + radius * math.cos(a0), cy - rise * math.sin(a0))]
+            points += [(x + radius * math.cos(a0 + (a1 - a0) * s / 4), cy - rise * math.sin(a0 + (a1 - a0) * s / 4)) for s in range(1, 5)]
+            points += [(x + radius * math.cos(a1), cy)]
+            points += [(x + radius * math.cos(a0), cy)]
+            pygame.draw.polygon(self.screen, GREEN_SOFT if k % 2 == 0 else (250, 250, 246), points)
+        pygame.draw.line(self.screen, INK, (x - radius, cy), (x + radius, cy), 2)
+        pygame.draw.arc(self.screen, INK, pygame.Rect(x - radius, cy - rise, radius * 2, rise * 2), 0, math.pi, 2)
+        pygame.draw.line(self.screen, INK, (x, cy), (x, cy + 108), 3)
+        pygame.draw.arc(self.screen, INK, pygame.Rect(x - 12, cy + 100, 12, 16), math.pi, 2 * math.pi, 3)
 
     # --------------------------------------------------------------- side scene
 
@@ -669,9 +979,7 @@ class DeliveryRenderer:
         if self.scene == "int":
             image = self.interior["pharmacy" if self.building == "pharmacy" else "lobby"]
             self.screen.blit(image, (-(image.get_width() - WIDTH) // 2, -110))
-            self._walker(self.rider_int, self.rider_x, INT_FEET_Y)
-            if self.patient_x is not None:
-                self._patient(self.patient_int, self.patient_x, INT_FEET_Y)
+            self._actors("int", INT_FEET_Y)
             return
         self.screen.blit(self.sky, (0, 0))
         pygame.draw.rect(self.screen, (194, 188, 176), pygame.Rect(0, SIDEWALK_TOP, WIDTH, CURB_Y - SIDEWALK_TOP))
@@ -686,16 +994,86 @@ class DeliveryRenderer:
         pygame.draw.ellipse(shadow, (0, 0, 0, 70), shadow.get_rect())
         self.screen.blit(shadow, (BUILDING_X - shadow.get_width() // 2, SIDEWALK_TOP - 8))
         self.screen.blit(art, (BUILDING_X - art.get_width() // 2, SIDEWALK_TOP + 4 - art.get_height()))
-        self._building_sign(env)
+        if self.scene != "shelter":
+            self._building_sign(env)
         pygame.draw.rect(self.screen, (226, 222, 214), pygame.Rect(0, CURB_Y - 6, WIDTH, 8))
         pygame.draw.rect(self.screen, (66, 70, 76), pygame.Rect(0, CURB_Y + 2, WIDTH, VIEW_H - CURB_Y))
         for x in range(10, WIDTH, 120):
             pygame.draw.rect(self.screen, (236, 206, 96), pygame.Rect(x, 508, 60, 5), border_radius=2)
         if self.bike_x is not None:
-            self.screen.blit(self.bike_side, (self.bike_x - self.bike_side.get_width() // 2, FEET_Y + 6 - self.bike_side.get_height()))
+            left = self.bike_x - self.bike_side.get_width() // 2
+            top = FEET_Y + 6 - self.bike_side.get_height()
+            self.screen.blit(self.bike_side, (left, top))
+            if env.covered:
+                self._tarp(left, top)
+        if self.scene != "shelter":  # at the porch the rider is drawn after the rain
+            self._actors("ext", FEET_Y)
+
+    def _tarp(self, left: int, top: int) -> None:
+        """The blue rain cover over the delivery box."""
+        pygame = self._pygame
+        w, h = self.bike_side.get_size()
+        rect = pygame.Rect(left + int(w * 0.0), top + int(h * 0.08), int(w * 0.325), int(h * 0.40))
+        pygame.draw.rect(self.screen, (24, 58, 112), rect, border_radius=8)
+        pygame.draw.rect(self.screen, (92, 140, 204), rect, width=2, border_radius=8)
+        for fraction in (0.33, 0.66):
+            x = rect.x + int(rect.width * fraction)
+            pygame.draw.line(self.screen, (92, 140, 204), (x, rect.y + 3), (x, rect.bottom - 3), 1)
+
+    def _porch(self, env: FarumasiRiderEnv) -> None:
+        """Rain falls on the road and the bike, but not under the awning where the rider waits."""
+        pygame = self._pygame
+        left, right = AWNING
+        dry = pygame.Rect(left, AWNING_BOTTOM, right - left, FEET_Y + 12 - AWNING_BOTTOM)
+        saved = self.screen.subsurface(dry).copy()
+        if env.raining:
+            self._rain_layer(0.55)
+        elif env.rain_soon:
+            self._tint(36)
+        self.screen.blit(saved, dry.topleft)
+        self._actors("ext", FEET_Y)
+        # the awning itself, with posts down to the pavement
+        for x in (left + 6, right - 10):
+            pygame.draw.rect(self.screen, (92, 96, 102), pygame.Rect(x, AWNING_BOTTOM, 5, FEET_Y - AWNING_BOTTOM + 4))
+        band = pygame.Rect(left, AWNING_TOP, right - left, AWNING_BOTTOM - AWNING_TOP)
+        stripe = 26
+        for k, x in enumerate(range(left, right, stripe)):
+            colour = GREEN_SOFT if k % 2 == 0 else (250, 250, 246)
+            pygame.draw.rect(self.screen, colour, pygame.Rect(x, band.y, min(stripe, right - x), band.height))
+            if x + stripe <= right:
+                pygame.draw.circle(self.screen, colour, (x + stripe // 2, band.bottom), stripe // 2 - 1)
+        pygame.draw.rect(self.screen, INK, band, width=2)
+
+    def _actors(self, key: str, feet_y: int) -> None:
+        """The patient is drawn first so the rider stands in front of them."""
+        pygame = self._pygame
         if self.patient_x is not None:
-            self._patient(self.patient_ext, self.patient_x, FEET_Y)
-        self._walker(self.rider_ext, self.rider_x, FEET_Y)
+            if self.patient_walking:
+                frames = self.patient_int if key == "int" else self.patient_ext
+                sprite = pygame.transform.flip(frames[(self.patient_phase // 4) % 4], True, False)
+                bob = int(abs(math.sin(self.patient_phase * 0.42)) * 5)
+                left = self.patient_x - sprite.get_width() / 2
+            else:
+                sprite = self.patient_pose[key][self.pose_p or 0]
+                bob = 0
+                left = self.patient_x - 0.75 * sprite.get_width()
+            shadow = pygame.Surface((120, 20), pygame.SRCALPHA)
+            pygame.draw.ellipse(shadow, (0, 0, 0, 90), shadow.get_rect())
+            self.screen.blit(shadow, (self.patient_x - 60, feet_y - 10))
+            self.screen.blit(sprite, (left, feet_y - sprite.get_height() - bob))
+        if self.pose_r is not None and not self.walking:
+            sprite = self.rider_pose[key][self.pose_r]
+            shadow = pygame.Surface((130, 22), pygame.SRCALPHA)
+            pygame.draw.ellipse(shadow, (0, 0, 0, 90), shadow.get_rect())
+            self.screen.blit(shadow, (self.rider_x - 65, feet_y - 11))
+            self.screen.blit(sprite, (self.rider_x - 0.19 * sprite.get_width(), feet_y - sprite.get_height()))
+            head = feet_y - sprite.get_height()
+        else:
+            frames = self.rider_int if key == "int" else self.rider_ext
+            self._walker(frames, self.rider_x, feet_y)
+            head = feet_y - frames[0].get_height()
+        if self.rain_on and key == "ext" and self.scene != "shelter":
+            self._umbrella_side(self.rider_x, head)
 
     def _building_sign(self, env: FarumasiRiderEnv) -> None:
         pygame = self._pygame
@@ -932,14 +1310,14 @@ class DeliveryRenderer:
         panel = pygame.Surface((560, 100), pygame.SRCALPHA)
         pygame.draw.rect(panel, (12, 20, 18, 220), panel.get_rect(), border_radius=18)
         pygame.draw.rect(panel, colour, panel.get_rect(), width=4, border_radius=18)
-        left = 24 if self.scene == "ext" else WIDTH // 2 - 280
+        left = 24 if self.scene in ("ext", "shelter") else WIDTH // 2 - 280
         self.screen.blit(panel, (left, 72 + slide))
         self._text(title, left + 280, 100 + slide, (255, 255, 255), self._font(34, True), center=True)
         self._text(detail, left + 280, 142 + slide, (214, 235, 228), self._font(17), center=True)
         if key in ("rx_ok", "rx_wrong"):
             self._rx_paper(env, key == "rx_ok", t)
         if key == "gate_opened":
-            self._speech("Knock knock!", 520, 240)
+            self._speech("Knock knock!", int(self.rider_x) + 100, 210)
         reward = env.last_reward
         if key in ("handed_over", "order_collected") and reward:
             self._float_reward(reward, t)
@@ -950,7 +1328,8 @@ class DeliveryRenderer:
             "entered_pharmacy": ("KIGALI CITY PHARMACY", "Walking in to collect the order", GREEN_SOFT),
             "order_collected": ("ORDER COLLECTED", f"{med} sealed in the FARUMASI box", GREEN_SOFT),
             "covered_box": ("BOX COVERED", "Rain cover on. The medicine stays dry", BLUE),
-            "waited": ("WAITING", "Every minute counts against the promise", AMBER),
+            "waited": ("WAITING", "Pulled over at a house. The clock keeps running", AMBER),
+            "sheltering": ("TAKING SHELTER", "Under a porch from the rain. The clock keeps running", BLUE),
             "parked": ("PARKED", "Box in hand. The rider walks in on foot", GREEN_SOFT),
             "gate_opened": ("GATE OPENED", f"{env.patient} comes to the door", GREEN_SOFT),
             "checked_in": ("CHECKED IN", "Reception calls the patient down", GREEN_SOFT),
@@ -1029,7 +1408,7 @@ class DeliveryRenderer:
     def _rx_paper(self, env: FarumasiRiderEnv, ok: bool, t: float) -> None:
         pygame = self._pygame
         paper = pygame.Rect(0, 0, 250, 300)
-        paper.center = (WIDTH // 2 + 280, 330 - int(14 * math.sin(t * 6)))
+        paper.center = (WIDTH - 170, 300 - int(10 * math.sin(t * 6)))
         pygame.draw.rect(self.screen, (250, 249, 244), paper, border_radius=8)
         pygame.draw.rect(self.screen, (180, 176, 164), paper, width=2, border_radius=8)
         self._text("PRESCRIPTION", paper.x + 24, paper.y + 14, GREEN_DARK, self._font(20, True))
@@ -1048,8 +1427,11 @@ class DeliveryRenderer:
 
     def _scan_phone(self, env: FarumasiRiderEnv, t: float) -> None:
         pygame = self._pygame
+        real_screen = self.screen
+        sheet = pygame.Surface((300, 470), pygame.SRCALPHA)
+        self.screen = sheet
         body = pygame.Rect(0, 0, 300, 470)
-        body.center = (WIDTH // 2, 290)
+        body.center = (150, 235)
         pygame.draw.rect(self.screen, (14, 18, 20), body, border_radius=36)
         screen = body.inflate(-20, -24)
         pygame.draw.rect(self.screen, (246, 249, 246), screen, border_radius=26)
@@ -1081,6 +1463,10 @@ class DeliveryRenderer:
             pygame.draw.lines(self.screen, (255, 255, 255), False, [(screen.centerx - 18, screen.y + 330), (screen.centerx - 4, screen.y + 346), (screen.centerx + 20, screen.y + 314)], 7)
             self._text("DELIVERY CONFIRMED", screen.centerx, screen.y + 392, GREEN_DARK, self._font(19, True), center=True)
             self._text(f"Order FR-{env.order_id}", screen.centerx, screen.y + 418, MUTED, self._font(14), center=True)
+        self.screen = real_screen
+        scale = 0.62 * (0.75 + 0.25 * _ease(t * 5.0))
+        inset = pygame.transform.smoothscale(sheet, (int(300 * scale), int(470 * scale)))
+        self.screen.blit(inset, inset.get_rect(center=(1090, 300)))
 
     # ---------------------------------------------------------------- helpers
 
@@ -1137,7 +1523,7 @@ def save_environment_png(path: str, seed: int = 0, stage: str = "city") -> str:
                 return env
         raise RuntimeError("no matching seed")
 
-    env = build("hotel" if stage in ("lobby", "scan") else None)
+    env = build("hotel" if stage in ("lobby", "scan") else ("home" if stage in ("home", "handover") else None))
     if stage == "rain":
         env.rain_at = 0
     if stage == "pharmacy":
@@ -1148,9 +1534,15 @@ def save_environment_png(path: str, seed: int = 0, stage: str = "city") -> str:
             env.step(heuristic_action(env))
             if env.phase == P_RIDING and env.steps >= 6:
                 break
-    elif stage == "lobby":
+    elif stage in ("lobby", "home"):
+        env.rx_required = False
         while env.phase != P_PATIENT:
             env.step(heuristic_action(env))
+    elif stage == "handover":
+        env.rx_required = False
+        while env.phase != P_PATIENT:
+            env.step(heuristic_action(env))
+        env.step(HAND)
     elif stage == "scan":
         env.rx_required = False
         while env.outcome == "":

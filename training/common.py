@@ -69,9 +69,12 @@ def run_episode(
     device: torch.device,
     render_mode: str | None = None,
     on_step=None,
+    on_reset=None,
 ):
     env = FarumasiRiderEnv(render_mode=render_mode)
     observation, info = env.reset(seed=seed)
+    if on_reset is not None:
+        on_reset(env)
     done = False
     trace = []
     while not done:
@@ -86,7 +89,7 @@ def run_episode(
                 "reward": reward,
                 "medicine": info["decision"].get("medicine"),
                 "pharmacy": info["decision"].get("pharmacy_name"),
-                "shift_return": info["shift_return"],
+                "episode_return": info["episode_return"],
             }
         )
         done = terminated or truncated
@@ -94,11 +97,9 @@ def run_episode(
             env.render()
     summary = {
         "return": float(env.return_so_far),
-        "urgent_met_filled": int(env.urgent_met_filled),
-        "urgent_met_total": int(env.urgent_met_total),
-        "routine_met_filled": int(env.routine_met_filled),
-        "dispensed": int(env.dispensed),
-        "referred": int(env.referred),
+        "success": int(env.success),
+        "minutes": float(env.minutes),
+        "outcome": env.outcome,
         "trace": trace,
     }
     env.close()
@@ -111,11 +112,11 @@ def evaluate(net: torch.nn.Module, device: torch.device, seeds: tuple[int, ...] 
     for seed in seeds:
         summary = run_episode(net, seed, device)
         returns.append(summary["return"])
-        fills.append(summary["urgent_met_filled"] / max(1, summary["urgent_met_total"]))
+        fills.append(float(summary["success"]))
     return {
         "eval_return": float(np.mean(returns)),
         "eval_return_std": float(np.std(returns)),
-        "eval_urgent_fill": float(np.mean(fills)),
+        "eval_success": float(np.mean(fills)),
     }
 
 
@@ -130,12 +131,12 @@ def heuristic_reference(seeds: tuple[int, ...] = EVAL_SEEDS) -> dict[str, float]
             _, _, terminated, truncated, _ = env.step(heuristic_action(env))
             done = terminated or truncated
         returns.append(float(env.return_so_far))
-        fills.append(env.urgent_met_filled / max(1, env.urgent_met_total))
+        fills.append(float(env.success))
         env.close()
     return {
         "heuristic_return": float(np.mean(returns)),
         "heuristic_return_std": float(np.std(returns)),
-        "heuristic_urgent_fill": float(np.mean(fills)),
+        "heuristic_success": float(np.mean(fills)),
     }
 
 

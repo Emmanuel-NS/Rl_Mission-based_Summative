@@ -138,12 +138,12 @@ def build_plots(log_root: str | Path = "logs", out_dir: str | Path = "logs/figur
         group = sorted((item for item in summaries if item["algo"] == algo), key=lambda item: item["experiment"])
         labels = [str(item["experiment"]) for item in group]
         values = [item.get("best_eval_return", 0.0) for item in group]
-        urgent = [item.get("best_urgent_fill", 0.0) for item in group]
+        success = [item.get("best_success", 0.0) for item in group]
         axis.bar(labels, values, color=COLOURS[algo])
         axis.set_title(f"{algo} best eval return")
         axis.set_xlabel("Experiment")
         axis.set_ylabel("Return")
-        for label, fill in zip(labels, urgent):
+        for label, fill in zip(labels, success):
             axis.annotate(f"{fill:.0%}", (label, 0), textcoords="offset points", xytext=(0, 4), ha="center", fontsize=8)
     fig.tight_layout()
     path = out_dir / "experiment_bars.png"
@@ -176,7 +176,7 @@ def write_markdown_tables(log_root: str | Path = "logs", path: str | Path = "log
                 value = config.get(key, "")
                 cells.append(f"{value:.4g}" if isinstance(value, float) else str(value))
             cells.append(f"{item.get('best_eval_return', float('nan')):.2f}")
-            cells.append(f"{item.get('best_urgent_fill', float('nan')):.2f}")
+            cells.append(f"{item.get('best_success', float('nan')):.2f}")
             lines.append("| " + " | ".join(cells) + " |")
         lines.append("")
     destination = Path(path)

@@ -21,6 +21,7 @@ from environment.custom_env import (
     RETURN_MEDS,
     SCAN,
     VERIFY,
+    WAIT,
     FarumasiRiderEnv,
     observation_catalogue,
 )
@@ -46,7 +47,7 @@ def test_reset_observation_is_inside_the_box():
     assert float(observation.max()) <= 1.0
     assert info["action_mask"].shape == (N_ACTIONS,)
     assert env.node == PHARMACY_NODE
-    assert [int(i) for i in np.flatnonzero(info["action_mask"])] == [5, ENTER]
+    assert [int(i) for i in np.flatnonzero(info["action_mask"])] == [ENTER]
 
 
 def test_rider_cannot_ride_before_collecting_the_order():
@@ -77,6 +78,24 @@ def test_uncovered_box_is_damaged_by_rain():
     env2.step(COVER)
     env2.step(heuristic_action(env2))
     assert env2.condition == 1.0
+
+
+def test_waiting_is_only_possible_in_the_rain_and_keeps_the_box_dry():
+    env = FarumasiRiderEnv()
+    env.reset(seed=1)
+    env.rain_at, env.rain_end = 10**6, 10**6
+    env.step(ENTER)
+    env.step(COLLECT)
+    assert env.phase == P_RIDING
+    assert env.action_mask()[WAIT] < 0.5
+    env.rain_at, env.rain_end = env.steps, env.steps + 3
+    assert env.raining and env.action_mask()[WAIT] > 0.5
+    _, _, _, _, info = env.step(WAIT)
+    assert info["event"] == "waited" and env.condition == 1.0
+    while env.raining:
+        env.step(WAIT)
+    assert env.action_mask()[WAIT] < 0.5
+    assert not env.rain_soon
 
 
 def test_wrong_prescription_must_be_returned():
@@ -117,7 +136,7 @@ def test_full_delivery_ends_with_a_qr_scan():
     assert terminated
     assert info["event"] == "delivered"
     assert reward > 3.0
-    assert env.urgent_met_filled == 1
+    assert env.success == 1
 
 
 def test_random_rider_reaches_an_end_state():

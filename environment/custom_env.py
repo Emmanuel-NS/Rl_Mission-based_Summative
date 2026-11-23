@@ -15,12 +15,13 @@ import gymnasium as gymnasium
 import numpy as np
 from gymnasium import spaces
 
-ENV_VERSION = "rider-delivery-3"
+ENV_VERSION = "rider-delivery-4"
 MAX_STEPS = 80
+RAIN_MIN, RAIN_MAX = 6, 14
 DEADLINE = 30.0
 CANCEL_AFTER = DEADLINE + 25.0
 TIME_COST = 0.03
-SHAPING = 0.04
+SHAPING = 0.12  # reward per minute of traffic-aware travel time saved by a ride (potential-based, so it does not change the best route)
 
 COLS, ROWS = 6, 4
 N_NODES = COLS * ROWS
@@ -148,7 +149,7 @@ def place_name(node: int) -> str:
     return f"{AVENUES[row]} and {STREETS[col]}"
 
 
-GLOBAL_FEATURES = 6 + 2 + 2 + 2 + 1 + 4 + 4 + 3 + 3 + 1 + len(MEDICINES) + 4
+GLOBAL_FEATURES = 6 + 2 + 2 + 2 + 1 + 4 + 4 + 3 + 3 + 1 + len(MEDICINES) + 4 + 4
 OBS_DIM = GLOBAL_FEATURES + N_EDGES + N_ACTIONS
 
 
@@ -194,6 +195,8 @@ def observation_catalogue() -> list[dict[str, str | int]]:
         add(f"medicine_{number}", "0 or 1", f"order contains {name}")
     for name in ("north", "east", "south", "west"):
         add(f"traffic_{name}", "0 to 1", "traffic on the road leaving this junction (0 clear, 1 blocked)")
+    for name in ("north", "east", "south", "west"):
+        add(f"bearing_{name}", "0 or 1", "phone compass: riding this way gets closer to the destination (patient, or pharmacy when returning)")
     for edge in range(N_EDGES):
         a, b = edge_nodes(edge)
         add(f"traffic_edge_{edge}", "0 to 1", f"live traffic between {place_name(a)} and {place_name(b)}")
@@ -227,6 +230,7 @@ class FarumasiRiderEnv(gymnasium.Env):
         self.steps = 0
         self.minutes = 0.0
         self.rain_at = 10**6
+        self.rain_end = 10**6
         self.incident_at = 10**6
         self.incident_edge = -1
         self.rush = False
@@ -266,7 +270,9 @@ class FarumasiRiderEnv(gymnasium.Env):
         if self.rush:
             for col in range(COLS - 1):
                 self.traffic[edge_id(ARTERY_ROW * COLS + col, ARTERY_ROW * COLS + col + 1)] = 2 if rng.random() < 0.65 else 3
-        self.rain_at = int(rng.integers(3, 11)) if rng.random() < 0.65 else 10**6
+        if rng.random() < 0.65:
+            self.rain_at = int(rng.integers(3, 11))
+            self.rain_end = self.rain_at + int(rng.integers(RAIN_MIN, RAIN_MAX + 1))
         self.incident_at = int(rng.integers(5, 10))
         return self._observe(), self._info()
 
@@ -274,11 +280,11 @@ class FarumasiRiderEnv(gymnasium.Env):
 
     @property
     def raining(self) -> bool:
-        return self.steps >= self.rain_at
+        return self.rain_at <= self.steps < self.rain_end
 
     @property
     def rain_soon(self) -> bool:
-        return (not self.raining) and (self.rain_at - self.steps) <= 2
+        return self.steps < self.rain_at and (self.rain_at - self.steps) <= 2
 
     @property
     def target_node(self) -> int:
@@ -332,7 +338,7 @@ class FarumasiRiderEnv(gymnasium.Env):
             reward, minutes, event, terminated = self._act(action)
 
         self.last_wet = False
-        if was_outdoors and self.raining and not self.covered and not terminated:
+        if was_outdoors and self.raining and not self.covered and action != WAIT and not terminated:
             damage = 0.12 if action <= RIDE_W else 0.07
             self.condition = max(0.0, self.condition - damage)
             reward -= damage
@@ -438,14 +444,15 @@ class FarumasiRiderEnv(gymnasium.Env):
         mask = np.zeros(N_ACTIONS, dtype=np.float32)
         phase = self.phase
         if phase == P_OUTSIDE:
-            mask[[ENTER, WAIT]] = 1.0
+            mask[ENTER] = 1.0
         elif phase == P_INSIDE:
-            mask[[COLLECT, WAIT]] = 1.0
+            mask[COLLECT] = 1.0
         elif phase == P_RIDING:
             for direction in range(4):
                 if neighbour(self.node, direction) is not None:
                     mask[direction] = 1.0
-            mask[WAIT] = 1.0
+            if self.raining:
+                mask[WAIT] = 1.0  # shelter under a porch: only worth considering while it rains
             if not self.covered:
                 mask[COVER] = 1.0
             if not self.returning and self.node == self.dest.node:
@@ -453,7 +460,7 @@ class FarumasiRiderEnv(gymnasium.Env):
             if self.returning and self.node == PHARMACY_NODE:
                 mask[RETURN_MEDS] = 1.0
         elif phase == P_ENTRANCE:
-            mask[[KNOCK, WAIT]] = 1.0
+            mask[KNOCK] = 1.0
             if not self.covered:
                 mask[COVER] = 1.0
         elif phase == P_BUILDING:
@@ -506,6 +513,15 @@ class FarumasiRiderEnv(gymnasium.Env):
         for direction in range(4):
             other = neighbour(self.node, direction)
             values.append(0.0 if other is None else self.traffic[edge_id(self.node, other)] / 3.0)
+        tcol, trow = node_xy(self.target_node)
+        here = abs(tcol - col) + abs(trow - row)
+        for direction in range(4):
+            other = neighbour(self.node, direction)
+            if other is None:
+                values.append(0.0)
+            else:
+                ocol, orow = node_xy(other)
+                values.append(1.0 if abs(tcol - ocol) + abs(trow - orow) < here else 0.0)
         values += list(self.traffic.astype(np.float32) / 3.0)
         values += list(self.action_mask())
         observation = np.asarray(values, dtype=np.float32)
@@ -530,7 +546,7 @@ class FarumasiRiderEnv(gymnasium.Env):
             "action_mask": self.action_mask(),
             "condition": round(self.condition, 3),
             "minutes": round(self.minutes, 1),
-            "shift_return": self.return_so_far,
+            "episode_return": self.return_so_far,
             "outcome": self.outcome,
             "decision": {
                 "action": ACTION_NAMES[self.last_action] if self.last_action >= 0 else None,
@@ -539,7 +555,7 @@ class FarumasiRiderEnv(gymnasium.Env):
                 "reward": self.last_reward,
                 "medicine": MED_NAMES[self.med],
                 "pharmacy_name": self.current_place(),
-                "shift_return": self.return_so_far,
+                "episode_return": self.return_so_far,
             },
         }
 
@@ -570,21 +586,6 @@ class FarumasiRiderEnv(gymnasium.Env):
         return int(self.outcome == "returned")
 
     @property
-    def urgent_met_filled(self) -> int:
+    def success(self) -> int:
+        """1 when the episode ended correctly: delivered, or a wrong prescription taken back."""
         return self.delivered + self.returned_ok
-
-    @property
-    def urgent_met_total(self) -> int:
-        return 1
-
-    @property
-    def routine_met_filled(self) -> int:
-        return 0
-
-    @property
-    def dispensed(self) -> int:
-        return self.delivered
-
-    @property
-    def referred(self) -> int:
-        return self.returned_ok

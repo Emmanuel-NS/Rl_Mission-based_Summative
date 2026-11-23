@@ -10,19 +10,22 @@ from environment.custom_env import (
     COLS,
     DESTINATIONS,
     PHARMACY_NODE,
+    edge_nodes,
     ROWS,
     STREETS,
 )
 
 NX0, NY0 = 430, 340
-DX, DY = 400, 300
+DX, DY = 440, 340
 WORLD_W = 2 * NX0 + (COLS - 1) * DX
 WORLD_H = 2 * NY0 + (ROWS - 1) * DY
-ROAD_W = 84
-ARTERY_W = 112
+ROAD_W = 128
+ARTERY_W = 136
+BIKE_LANE = 26
 
 PAVEMENT = (214, 210, 198)
 ASPHALT = (60, 64, 69)
+BIKE_ASPHALT = (54, 84, 76)
 GRASS = (132, 178, 114)
 
 LANDMARK_SIZE = {"pharmacy": (156, 104), "home": (112, 88), "office": (164, 112), "hotel": (184, 112)}
@@ -34,6 +37,37 @@ def node_px(node: int) -> tuple[int, int]:
 
 def road_half(row: int) -> int:
     return (ARTERY_W if row == ARTERY_ROW else ROAD_W) // 2
+
+
+def car_lane_offset(half: int) -> float:
+    """Distance from the road centre to the middle of a car lane."""
+    return (half - BIKE_LANE) / 2.0
+
+
+def bike_lane_offset(half: int) -> float:
+    """Distance from the road centre to the middle of the rider's lane at the kerb."""
+    return half - BIKE_LANE / 2.0
+
+
+def lane_half(node: int, horizontal: bool) -> int:
+    """Half width of the road that a rider on this node travels along."""
+    return road_half(node // COLS) if horizontal else ROAD_W // 2
+
+
+def edge_geometry(edge: int):
+    """Start, end, length, orientation, road half width and junction halves of a road."""
+    a, b = edge_nodes(edge)
+    ax, ay = node_px(a)
+    bx, by = node_px(b)
+    horizontal = ay == by
+    length = abs(bx - ax) + abs(by - ay)
+    if horizontal:
+        half = road_half(a // COLS)
+        junction_a = junction_b = ROAD_W // 2
+    else:
+        half = ROAD_W // 2
+        junction_a, junction_b = road_half(a // COLS), road_half(b // COLS)
+    return ax, ay, bx, by, length, horizontal, half, junction_a, junction_b
 
 
 def _xs() -> list[int]:
@@ -97,8 +131,10 @@ def build_city(pygame, fonts) -> object:
                 continue
             outer = i < 0 or j < 0 or i >= COLS - 1 or j >= ROWS - 1
             if not outer and rng.random() < 0.2:
-                _park(pygame, world, lot, rng)
-                continue
+                holds_landmark = any(lot.colliderect(pygame.Rect(*rect)) for rect in landmarks().values())
+                if not holds_landmark:
+                    _park(pygame, world, lot, rng)
+                    continue
             cols = 1 if lot.width < 230 else (3 if lot.width > 700 else 2)
             rows = 1 if lot.height < 170 else 2
             for a in range(cols):
@@ -122,11 +158,15 @@ def build_city(pygame, fonts) -> object:
     for y_pos, row in zip(ys, range(ROWS)):
         half = road_half(row)
         pygame.draw.rect(world, asphalt, pygame.Rect(0, y_pos - half, WORLD_W, half * 2))
+        pygame.draw.rect(world, BIKE_ASPHALT, pygame.Rect(0, y_pos - half, WORLD_W, BIKE_LANE))
+        pygame.draw.rect(world, BIKE_ASPHALT, pygame.Rect(0, y_pos + half - BIKE_LANE, WORLD_W, BIKE_LANE))
         pygame.draw.line(world, (150, 148, 140), (0, y_pos - half), (WORLD_W, y_pos - half), 2)
         pygame.draw.line(world, (150, 148, 140), (0, y_pos + half), (WORLD_W, y_pos + half), 2)
     for x_pos in xs:
         half = ROAD_W // 2
         pygame.draw.rect(world, asphalt, pygame.Rect(x_pos - half, 0, half * 2, WORLD_H))
+        pygame.draw.rect(world, BIKE_ASPHALT, pygame.Rect(x_pos - half, 0, BIKE_LANE, WORLD_H))
+        pygame.draw.rect(world, BIKE_ASPHALT, pygame.Rect(x_pos + half - BIKE_LANE, 0, BIKE_LANE, WORLD_H))
         pygame.draw.line(world, (150, 148, 140), (x_pos - half, 0), (x_pos - half, WORLD_H), 2)
         pygame.draw.line(world, (150, 148, 140), (x_pos + half, 0), (x_pos + half, WORLD_H), 2)
 
@@ -219,21 +259,39 @@ def _roof(pygame, world, cell, style: str, rng) -> None:
             pygame.draw.circle(world, (120, 124, 130), unit.center, 4)
 
 
+def _bike_symbol(pygame, world, x: int, y: int, horizontal: bool) -> None:
+    """A small white wheel pair painted in the rider's lane."""
+    for k in (-9, 9):
+        centre = (x + k, y) if horizontal else (x, y + k)
+        pygame.draw.circle(world, (226, 236, 230), centre, 5, 2)
+    a, b = ((x - 9, y), (x + 9, y)) if horizontal else ((x, y - 9), (x, y + 9))
+    pygame.draw.line(world, (226, 236, 230), a, b, 2)
+
+
 def _hline_markings(pygame, world, y: int, artery: bool) -> None:
+    half = (ARTERY_W if artery else ROAD_W) // 2
+    edge = half - BIKE_LANE
+    for side in (-1, 1):
+        pygame.draw.line(world, (240, 240, 236), (0, y + side * edge), (WORLD_W, y + side * edge), 2)
+        for x in range(180, WORLD_W, 360):
+            _bike_symbol(pygame, world, x, y + side * (half - BIKE_LANE // 2), True)
     if artery:
         pygame.draw.line(world, (236, 196, 60), (0, y - 3), (WORLD_W, y - 3), 3)
         pygame.draw.line(world, (236, 196, 60), (0, y + 3), (WORLD_W, y + 3), 3)
-        for x in range(0, WORLD_W, 54):
-            pygame.draw.line(world, (240, 240, 236), (x, y - 26), (x + 28, y - 26), 2)
-            pygame.draw.line(world, (240, 240, 236), (x, y + 26), (x + 28, y + 26), 2)
     else:
         for x in range(0, WORLD_W, 54):
-            pygame.draw.line(world, (240, 240, 236), (x, y), (x + 28, y), 3)
+            pygame.draw.line(world, (236, 196, 60), (x, y), (x + 28, y), 3)
 
 
 def _vline_markings(pygame, world, x: int) -> None:
+    half = ROAD_W // 2
+    edge = half - BIKE_LANE
+    for side in (-1, 1):
+        pygame.draw.line(world, (240, 240, 236), (x + side * edge, 0), (x + side * edge, WORLD_H), 2)
+        for y in range(120, WORLD_H, 300):
+            _bike_symbol(pygame, world, x + side * (half - BIKE_LANE // 2), y, False)
     for y in range(0, WORLD_H, 54):
-        pygame.draw.line(world, (240, 240, 236), (x, y), (x, y + 28), 3)
+        pygame.draw.line(world, (236, 196, 60), (x, y), (x, y + 28), 3)
 
 
 def _crossings(pygame, world, x: int, y: int, half_v: int, half_h: int) -> None:

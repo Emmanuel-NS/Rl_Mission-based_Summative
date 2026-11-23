@@ -16,19 +16,41 @@ uv run python main.py --screenshot
 
 ## Full training
 
-The comparison used in the report is 10 settings for each algorithm, 20,000 environment frames each, on the same deliveries and the same held-out seeds (1000–1019). Open `colab_train.ipynb` on a normal CPU runtime. The city step is Python and the network is small, so a T4 does not make the sweep faster and the free GPU quota runs out before the files can be downloaded.
+The comparison used in the report is 10 settings for each algorithm, 30,000 environment frames each, on the same deliveries and the same held-out seeds (1000–1019). Open `colab_train.ipynb` on a normal CPU runtime. The city step is Python and the network is small, so a T4 does not make the sweep faster and the free GPU quota runs out before the files can be downloaded.
 
 ```powershell
-uv run python main.py --sweep all --device cpu --frames 20000 --eval-every 5000
+uv run python main.py --sweep all --device cpu --frames 30000 --eval-every 5000
 ```
 
 One algorithm, one setting:
 
 ```powershell
-uv run python main.py --sweep ppo --experiment 1 --device cpu --frames 20000
+uv run python main.py --sweep ppo --experiment 1 --device cpu --frames 30000
 ```
 
-After the sweep, `models/best_agent.pt` is the greedy policy with the highest mean return on the held-out deliveries. Curves and tables are written to `logs/figures/` and `logs/experiment_tables.md`. A finished experiment is skipped if you start the sweep again, so a Colab disconnect does not throw away completed runs. Pass `--force` to train that setting again. Results from older environments (dispatcher, patient map, patient street) are ignored.
+After the sweep, `models/best_agent.pt` is the greedy policy with the highest mean return on the validation deliveries. Curves and tables are written to `logs/figures/` and `logs/experiment_tables.md`. A finished experiment is skipped if you start the sweep again, so a Colab disconnect does not throw away completed runs. Pass `--force` to train that setting again. Results from older environments (dispatcher, patient map, patient street) are ignored.
+
+## Long runs and held-out evaluation
+
+The sweep gives every setting 30,000 frames so that settings can be compared fairly. Two more steps show where each algorithm ends up and whether the result holds on deliveries it never saw.
+
+```powershell
+uv run python main.py --final --frames 120000 --seeds 2 --device cpu
+uv run python main.py --evaluate
+```
+
+`--final` trains the best setting of each algorithm for 120,000 frames on two training seeds (logs in `logs/final/`, checkpoints in `models/final/`) and makes the run with the best validation return the `models/best_agent.pt` that `play.py` shows. `--evaluate` scores the random rider, the rule-following rider, all 40 sweep checkpoints and the long runs on 100 test deliveries (seeds 5000-5099) that no run used, writes `logs/test_evaluation.json`, and draws the report figures in `logs/figures/`: convergence, test returns, generalisation by condition, outcomes, behaviour, and validation against test. The same two commands are the last cells of `colab_train.ipynb`.
+
+Results (every sweep run, the long runs, the test scores by condition and the baselines) are written to `docs/RESULTS.md` by `--evaluate`. The report draft is built from the same files by `report/build_report.py`.
+
+## Use the trained agent from another system
+
+```powershell
+uv run python serve.py --port 8000
+uv run python -m service.export
+```
+
+`serve.py` is a small JSON API (standard library only). The rider app would post the delivery state to `POST /act` and get the recommended action, the legal actions and the policy's scores; `GET /schema` lists the state fields. `service.export` writes a TorchScript file and a plain-JSON copy of the weights (three dense layers) for an on-device implementation. The state is encoded with the environment's own encoder, so serving cannot drift from training. `tests/test_service.py` covers the encoder, the API, and the export. The full environment description (actions, 94 observation values with their sources, rewards, start and terminal conditions) is in `docs/ENVIRONMENT.md`.
 
 ## Watch a delivery
 
@@ -36,7 +58,7 @@ After the sweep, `models/best_agent.pt` is the greedy policy with the highest me
 uv run python play.py --episodes 3 --seed 1000
 ```
 
-The window is a top-down Kigali with live traffic, a minimap showing the fastest route, and a mission card, in the style of a delivery game. Pharmacy, gate, and lobby scenes are shown side-on. Every step is also printed in the terminal. `--heuristic` plays the hand-written rider, which is the reference the agents are compared against.
+The window is a top-down Kigali with live traffic, a minimap showing the fastest route, and a mission card, in the style of a delivery game. Cars stay in their lanes, stop at the traffic lights, queue behind a blocked road, and wait for the rider; the rider uses the green bike lane at the kerb and waits when cross traffic is still in a junction, and rolls through junctions without stopping in them. In the rain the rider rides under an umbrella; when the agent chooses WAIT or COVER, the rider pulls over and stands under the porch of a nearby house instead of stopping in the road. Pharmacy, gate, and lobby scenes are shown side-on. At the patient the two stand face to face: the rider holds out the box, the patient takes it, and the rider scans the QR code. Every step is also printed in the terminal. `--heuristic` plays the hand-written rider, which is the reference the agents are compared against.
 
 ## What the agent observes and does
 
@@ -44,19 +66,24 @@ The map is a 6 by 4 grid of Kigali junctions (KN 3 Rd is the main road). Orders 
 
 Actions (16): ride north, east, south, west; cover the box with the rain tarp; wait; enter the pharmacy; collect the order; park; knock or check in at reception; carry the box; verify the prescription; hand over; scan the QR code; walk back to the bike; return the medicine to the pharmacy.
 
-`uv run python main.py --describe` prints every observation index (90 values: phase, position, destination and pharmacy offsets, clock, rain, box condition, prescription knowledge, the traffic level on all 38 roads, and a legal-action mask in the last 16 values).
+`uv run python main.py --describe` prints every observation index (94 values: phase, position, destination and pharmacy offsets, clock, rain, box condition, prescription knowledge, the traffic level on all 38 roads, a compass bearing to the destination, and a legal-action mask in the last 16 values).
 
 The rider is paid for a delivery that is quick and keeps the medicine dry, and pays for every minute and for rain damage. It is penalised for handing over a prescription medicine without verification or with an invalid prescription, and for a ruined box. Returning an invalid prescription to the pharmacy is a correct ending with a smaller reward. Heavy traffic costs extra minutes, so riding the main road at rush hour is a mistake that a side street avoids. The episode ends when the delivery is scanned, the medicine is returned, the box is ruined, the order is cancelled at 55 minutes, or the rider reaches 80 steps.
 
 ## Art
 
-The buildings, the people, the cars, the bike, the trees and the interior backdrops in `assets/raw/` were generated with an AI image tool for this project. `uv run python -m environment.sprites` cuts them into the transparent sprites in `assets/sprites/` that the window uses. The FARUMASI logo is drawn in code. The environment, the rendering, and the training are written for this project.
+The buildings, the people (walking and standing poses), the cars, the bike, the trees and the interior backdrops in `assets/raw/` were generated with an AI image tool for this project. `uv run python -m environment.sprites` cuts them into the transparent sprites in `assets/sprites/` that the window uses. The FARUMASI logo is drawn in code. The environment, the rendering, and the training are written for this project.
 
 ## Layout
 
 ```text
 main.py
 play.py
+serve.py
+docs/ENVIRONMENT.md
+service/agent.py
+service/server.py
+service/export.py
 environment/custom_env.py
 environment/city_map.py
 environment/rendering.py
@@ -65,6 +92,9 @@ environment/baselines.py
 training/dqn_training.py
 training/pg_training.py
 training/experiments.py
+training/final_training.py
+training/evaluation.py
+training/report_figures.py
 models/dqn/
 models/pg/
 logs/
@@ -74,4 +104,4 @@ tests/
 
 ## Video
 
-From this folder, with the camera and the whole screen shared: say that FARUMASI riders have to deliver fast and safely, that rush hour and rain change the best strategy, and that a wrong prescription goes back to the pharmacy. Then run `uv run python play.py --episodes 6 --seed 1000` and leave the window and the terminal visible. Checkpoints from earlier environments do not fit this one, so train again before recording the learned agent. `uv run python play.py --heuristic --episodes 6 --seed 1000` shows the hand-written rider on the same city.
+From this folder, with the camera and the whole screen shared: say that FARUMASI riders have to deliver fast and safely, that rush hour and rain change the best strategy, and that a wrong prescription goes back to the pharmacy. Then run `uv run python play.py --episodes 6 --seed 1000` and leave the window and the terminal visible. `uv run python play.py --heuristic --episodes 6 --seed 1000` shows the hand-written rider on the same city.
