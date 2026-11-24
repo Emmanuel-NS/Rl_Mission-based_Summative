@@ -1,0 +1,12 @@
+{
+  "id": 2,
+  "name": "small_learning_rate",
+  "lr": 0.0001,
+  "gamma": 0.99,
+  "entropy": 0.01,
+  "value_coef": 0.5,
+  "hidden": 128,
+  "frames_per_batch": 256,
+  "grad_clip": 0.5,
+  "gae_lambda": 0.95
+}

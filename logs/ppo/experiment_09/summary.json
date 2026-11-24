@@ -1,0 +1,25 @@
+{
+  "algo": "ppo",
+  "experiment": 9,
+  "config": {
+    "id": 9,
+    "name": "ten_epochs",
+    "lr": 0.0003,
+    "gamma": 0.99,
+    "clip": 0.2,
+    "entropy": 0.01,
+    "gae_lambda": 0.95,
+    "epochs": 10,
+    "minibatch": 128,
+    "value_coef": 0.5,
+    "hidden": 128,
+    "frames_per_batch": 1024,
+    "grad_clip": 0.5
+  },
+  "frames": 30720,
+  "best_eval_return": 5.747333333333333,
+  "best_success": 0.95,
+  "seconds": 136.99,
+  "device": "cpu",
+  "env_version": "rider-delivery-4"
+}

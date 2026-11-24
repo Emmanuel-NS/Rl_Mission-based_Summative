@@ -1,0 +1,22 @@
+{
+  "algo": "reinforce",
+  "experiment": 1,
+  "config": {
+    "id": 1,
+    "name": "baseline_with_baseline",
+    "lr": 0.001,
+    "gamma": 0.99,
+    "entropy": 0.01,
+    "use_baseline": true,
+    "hidden": 128,
+    "frames_per_batch": 512,
+    "grad_clip": 1.0,
+    "value_coef": 0.5
+  },
+  "frames": 30208,
+  "best_eval_return": -2.5066666666666664,
+  "best_success": 0.15,
+  "seconds": 108.81,
+  "device": "cpu",
+  "env_version": "rider-delivery-4"
+}

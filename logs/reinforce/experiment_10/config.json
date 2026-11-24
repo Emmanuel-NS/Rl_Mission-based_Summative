@@ -1,0 +1,12 @@
+{
+  "id": 10,
+  "name": "wide_net_tight_clip",
+  "lr": 0.0003,
+  "gamma": 0.99,
+  "entropy": 0.02,
+  "use_baseline": true,
+  "hidden": 256,
+  "frames_per_batch": 1024,
+  "grad_clip": 0.5,
+  "value_coef": 0.5
+}

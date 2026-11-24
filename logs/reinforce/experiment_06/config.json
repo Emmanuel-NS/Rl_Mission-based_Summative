@@ -1,0 +1,12 @@
+{
+  "id": 6,
+  "name": "far_sighted_gamma",
+  "lr": 0.001,
+  "gamma": 0.999,
+  "entropy": 0.01,
+  "use_baseline": true,
+  "hidden": 128,
+  "frames_per_batch": 512,
+  "grad_clip": 1.0,
+  "value_coef": 0.5
+}

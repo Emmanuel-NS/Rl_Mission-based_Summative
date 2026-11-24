@@ -1,0 +1,27 @@
+{
+  "algo": "dqn",
+  "experiment": 3,
+  "config": {
+    "id": 3,
+    "name": "faster_learning_rate",
+    "lr": 0.003,
+    "gamma": 0.99,
+    "eps_start": 1.0,
+    "eps_end": 0.05,
+    "eps_anneal": 20000,
+    "buffer": 20000,
+    "batch": 64,
+    "target_every": 250,
+    "double_dqn": true,
+    "hidden": 128,
+    "loss": "smooth_l1",
+    "grad_clip": 10.0,
+    "frames_per_batch": 256
+  },
+  "frames": 30208,
+  "best_eval_return": 4.771166666666667,
+  "best_success": 0.9,
+  "seconds": 167.57,
+  "device": "cpu",
+  "env_version": "rider-delivery-4"
+}

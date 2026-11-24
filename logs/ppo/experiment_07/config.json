@@ -1,0 +1,15 @@
+{
+  "id": 7,
+  "name": "long_gae",
+  "lr": 0.0003,
+  "gamma": 0.99,
+  "clip": 0.2,
+  "entropy": 0.01,
+  "gae_lambda": 0.99,
+  "epochs": 4,
+  "minibatch": 256,
+  "value_coef": 0.5,
+  "hidden": 128,
+  "frames_per_batch": 1024,
+  "grad_clip": 0.5
+}

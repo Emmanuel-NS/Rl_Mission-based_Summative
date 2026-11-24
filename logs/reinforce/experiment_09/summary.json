@@ -1,0 +1,22 @@
+{
+  "algo": "reinforce",
+  "experiment": 9,
+  "config": {
+    "id": 9,
+    "name": "short_rollout",
+    "lr": 0.001,
+    "gamma": 0.99,
+    "entropy": 0.01,
+    "use_baseline": true,
+    "hidden": 128,
+    "frames_per_batch": 128,
+    "grad_clip": 1.0,
+    "value_coef": 0.5
+  },
+  "frames": 30080,
+  "best_eval_return": 0.08899999999999988,
+  "best_success": 0.35,
+  "seconds": 111.97,
+  "device": "cpu",
+  "env_version": "rider-delivery-4"
+}

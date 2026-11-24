@@ -1,0 +1,15 @@
+{
+  "id": 9,
+  "name": "ten_epochs",
+  "lr": 0.0003,
+  "gamma": 0.99,
+  "clip": 0.2,
+  "entropy": 0.01,
+  "gae_lambda": 0.95,
+  "epochs": 10,
+  "minibatch": 128,
+  "value_coef": 0.5,
+  "hidden": 128,
+  "frames_per_batch": 1024,
+  "grad_clip": 0.5
+}

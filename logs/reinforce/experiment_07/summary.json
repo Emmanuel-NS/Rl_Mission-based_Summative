@@ -1,0 +1,22 @@
+{
+  "algo": "reinforce",
+  "experiment": 7,
+  "config": {
+    "id": 7,
+    "name": "no_entropy",
+    "lr": 0.001,
+    "gamma": 0.99,
+    "entropy": 0.0,
+    "use_baseline": true,
+    "hidden": 128,
+    "frames_per_batch": 512,
+    "grad_clip": 1.0,
+    "value_coef": 0.5
+  },
+  "frames": 30208,
+  "best_eval_return": -2.1491666666666664,
+  "best_success": 0.15,
+  "seconds": 108.84,
+  "device": "cpu",
+  "env_version": "rider-delivery-4"
+}

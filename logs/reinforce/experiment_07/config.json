@@ -1,0 +1,12 @@
+{
+  "id": 7,
+  "name": "no_entropy",
+  "lr": 0.001,
+  "gamma": 0.99,
+  "entropy": 0.0,
+  "use_baseline": true,
+  "hidden": 128,
+  "frames_per_batch": 512,
+  "grad_clip": 1.0,
+  "value_coef": 0.5
+}

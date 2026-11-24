@@ -1,0 +1,22 @@
+{
+  "algo": "a2c",
+  "experiment": 6,
+  "config": {
+    "id": 6,
+    "name": "small_network",
+    "lr": 0.0007,
+    "gamma": 0.99,
+    "entropy": 0.01,
+    "value_coef": 0.5,
+    "hidden": 64,
+    "frames_per_batch": 256,
+    "grad_clip": 0.5,
+    "gae_lambda": 0.95
+  },
+  "frames": 30208,
+  "best_eval_return": -1.8583000000000005,
+  "best_success": 0.2,
+  "seconds": 110.3,
+  "device": "cpu",
+  "env_version": "rider-delivery-4"
+}

@@ -1,0 +1,27 @@
+{
+  "algo": "dqn",
+  "experiment": 5,
+  "config": {
+    "id": 5,
+    "name": "far_sighted_gamma",
+    "lr": 0.001,
+    "gamma": 0.999,
+    "eps_start": 1.0,
+    "eps_end": 0.05,
+    "eps_anneal": 20000,
+    "buffer": 20000,
+    "batch": 64,
+    "target_every": 250,
+    "double_dqn": true,
+    "hidden": 128,
+    "loss": "smooth_l1",
+    "grad_clip": 10.0,
+    "frames_per_batch": 256
+  },
+  "frames": 30208,
+  "best_eval_return": 4.750166666666667,
+  "best_success": 0.95,
+  "seconds": 162.51,
+  "device": "cpu",
+  "env_version": "rider-delivery-4"
+}

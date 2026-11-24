@@ -1,0 +1,27 @@
+{
+  "algo": "dqn",
+  "experiment": 7,
+  "config": {
+    "id": 7,
+    "name": "explore_longer",
+    "lr": 0.001,
+    "gamma": 0.99,
+    "eps_start": 1.0,
+    "eps_end": 0.1,
+    "eps_anneal": 60000,
+    "buffer": 20000,
+    "batch": 64,
+    "target_every": 250,
+    "double_dqn": true,
+    "hidden": 128,
+    "loss": "smooth_l1",
+    "grad_clip": 10.0,
+    "frames_per_batch": 256
+  },
+  "frames": 30208,
+  "best_eval_return": 4.599333333333334,
+  "best_success": 0.8,
+  "seconds": 164.91,
+  "device": "cpu",
+  "env_version": "rider-delivery-4"
+}

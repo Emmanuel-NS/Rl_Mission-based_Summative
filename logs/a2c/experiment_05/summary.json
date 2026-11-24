@@ -1,0 +1,22 @@
+{
+  "algo": "a2c",
+  "experiment": 5,
+  "config": {
+    "id": 5,
+    "name": "high_entropy",
+    "lr": 0.0007,
+    "gamma": 0.99,
+    "entropy": 0.05,
+    "value_coef": 0.5,
+    "hidden": 128,
+    "frames_per_batch": 256,
+    "grad_clip": 0.5,
+    "gae_lambda": 0.95
+  },
+  "frames": 30208,
+  "best_eval_return": -1.9986666666666668,
+  "best_success": 0.15,
+  "seconds": 109.58,
+  "device": "cpu",
+  "env_version": "rider-delivery-4"
+}

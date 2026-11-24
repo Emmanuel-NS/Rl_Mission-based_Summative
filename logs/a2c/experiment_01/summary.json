@@ -1,0 +1,22 @@
+{
+  "algo": "a2c",
+  "experiment": 1,
+  "config": {
+    "id": 1,
+    "name": "baseline",
+    "lr": 0.0007,
+    "gamma": 0.99,
+    "entropy": 0.01,
+    "value_coef": 0.5,
+    "hidden": 128,
+    "frames_per_batch": 256,
+    "grad_clip": 0.5,
+    "gae_lambda": 0.95
+  },
+  "frames": 30208,
+  "best_eval_return": -2.0636666666666663,
+  "best_success": 0.15,
+  "seconds": 111.41,
+  "device": "cpu",
+  "env_version": "rider-delivery-4"
+}

@@ -1,0 +1,22 @@
+{
+  "algo": "reinforce",
+  "experiment": 10,
+  "config": {
+    "id": 10,
+    "name": "wide_net_tight_clip",
+    "lr": 0.0003,
+    "gamma": 0.99,
+    "entropy": 0.02,
+    "use_baseline": true,
+    "hidden": 256,
+    "frames_per_batch": 1024,
+    "grad_clip": 0.5,
+    "value_coef": 0.5
+  },
+  "frames": 30720,
+  "best_eval_return": -2.464993333333333,
+  "best_success": 0.15,
+  "seconds": 124.47,
+  "device": "cpu",
+  "env_version": "rider-delivery-4"
+}

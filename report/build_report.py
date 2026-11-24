@@ -26,7 +26,7 @@ from docx.shared import Inches, Pt, RGBColor  # noqa: E402
 from narrative import TEXT  # noqa: E402
 import narrative_results  # noqa: E402,F401  (adds the results text to TEXT)
 
-ENV_VERSION = "rider-delivery-3"
+from environment.custom_env import ENV_VERSION  # noqa: E402
 ALGOS = ("dqn", "reinforce", "ppo", "a2c")
 NAMES = {"dqn": "DQN", "reinforce": "REINFORCE", "ppo": "PPO", "a2c": "A2C"}
 FIG = ROOT / "logs" / "figures"

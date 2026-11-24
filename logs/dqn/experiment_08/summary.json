@@ -1,0 +1,27 @@
+{
+  "algo": "dqn",
+  "experiment": 8,
+  "config": {
+    "id": 8,
+    "name": "small_replay",
+    "lr": 0.001,
+    "gamma": 0.99,
+    "eps_start": 1.0,
+    "eps_end": 0.05,
+    "eps_anneal": 20000,
+    "buffer": 2000,
+    "batch": 32,
+    "target_every": 250,
+    "double_dqn": true,
+    "hidden": 128,
+    "loss": "smooth_l1",
+    "grad_clip": 10.0,
+    "frames_per_batch": 256
+  },
+  "frames": 30208,
+  "best_eval_return": 4.970526666666666,
+  "best_success": 0.9,
+  "seconds": 156.87,
+  "device": "cpu",
+  "env_version": "rider-delivery-4"
+}

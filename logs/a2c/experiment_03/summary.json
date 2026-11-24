@@ -1,0 +1,22 @@
+{
+  "algo": "a2c",
+  "experiment": 3,
+  "config": {
+    "id": 3,
+    "name": "large_learning_rate",
+    "lr": 0.003,
+    "gamma": 0.99,
+    "entropy": 0.01,
+    "value_coef": 0.5,
+    "hidden": 128,
+    "frames_per_batch": 256,
+    "grad_clip": 0.5,
+    "gae_lambda": 0.95
+  },
+  "frames": 30208,
+  "best_eval_return": 3.519833333333333,
+  "best_success": 0.65,
+  "seconds": 111.54,
+  "device": "cpu",
+  "env_version": "rider-delivery-4"
+}

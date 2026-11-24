@@ -1,0 +1,12 @@
+{
+  "id": 10,
+  "name": "long_rollout_wide_net",
+  "lr": 0.0003,
+  "gamma": 0.99,
+  "entropy": 0.01,
+  "value_coef": 0.5,
+  "hidden": 256,
+  "frames_per_batch": 1024,
+  "grad_clip": 1.0,
+  "gae_lambda": 0.99
+}

@@ -1,0 +1,4461 @@
+{
+  "env_version": "rider-delivery-4",
+  "test_seeds": [
+    5000,
+    5099
+  ],
+  "baselines": {
+    "random": {
+      "episodes": 100,
+      "return_mean": -4.1381,
+      "return_std": 1.3435845302771243,
+      "return_sem": 0.13503532609257957,
+      "success": 0.02,
+      "minutes_mean": 52.65,
+      "outcomes": {
+        "delivered": 2,
+        "returned": 0,
+        "violation": 4,
+        "ruined": 8,
+        "cancelled": 86,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.21238586740770146,
+        "ride_east": 0.2576419213973799,
+        "ride_south": 0.18816990869392616,
+        "ride_west": 0.15958713775307662,
+        "cover_box": 0.03652242953552997,
+        "wait": 0.055577610162763004,
+        "enter_pharmacy": 0.03969829297340215,
+        "collect_order": 0.03969829297340215,
+        "park_and_walk_in": 0.0023818975784041284,
+        "knock_or_check_in": 0.0023818975784041284,
+        "carry_to_patient": 0.0023818975784041284,
+        "verify_prescription": 0.0003969829297340214,
+        "hand_over": 0.0023818975784041284,
+        "scan_qr": 0.0007939658594680428,
+        "walk_back_to_bike": 0.0,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.055577610162763004
+    },
+    "heuristic": {
+      "episodes": 100,
+      "return_mean": 6.541533333333332,
+      "return_std": 1.099394219053788,
+      "return_sem": 0.11049327640264268,
+      "success": 1.0,
+      "minutes_mean": 22.26,
+      "outcomes": {
+        "delivered": 81,
+        "returned": 19,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 0,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.08627450980392157,
+        "ride_east": 0.2601307189542484,
+        "ride_south": 0.05947712418300653,
+        "ride_west": 0.04967320261437908,
+        "cover_box": 0.052941176470588235,
+        "wait": 0.0,
+        "enter_pharmacy": 0.06535947712418301,
+        "collect_order": 0.06535947712418301,
+        "park_and_walk_in": 0.06535947712418301,
+        "knock_or_check_in": 0.06535947712418301,
+        "carry_to_patient": 0.06535947712418301,
+        "verify_prescription": 0.03398692810457516,
+        "hand_over": 0.052941176470588235,
+        "scan_qr": 0.052941176470588235,
+        "walk_back_to_bike": 0.01241830065359477,
+        "return_medicine": 0.01241830065359477
+      },
+      "wait_share": 0.0
+    }
+  },
+  "sweep": {
+    "dqn_exp01": {
+      "episodes": 100,
+      "return_mean": 5.669110666666667,
+      "return_std": 2.4452840178273316,
+      "return_sem": 0.24576029069654495,
+      "success": 0.94,
+      "minutes_mean": 26.18,
+      "outcomes": {
+        "delivered": 80,
+        "returned": 14,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 6,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.11936036550542548,
+        "ride_east": 0.23700742432895489,
+        "ride_south": 0.09765848086807538,
+        "ride_west": 0.04454597372929754,
+        "cover_box": 0.04511707595659623,
+        "wait": 0.03597944031981725,
+        "enter_pharmacy": 0.05711022272986865,
+        "collect_order": 0.05711022272986865,
+        "park_and_walk_in": 0.05596801827527127,
+        "knock_or_check_in": 0.05596801827527127,
+        "carry_to_patient": 0.05596801827527127,
+        "verify_prescription": 0.028555111364934323,
+        "hand_over": 0.045688178183894916,
+        "scan_qr": 0.045688178183894916,
+        "walk_back_to_bike": 0.010279840091376356,
+        "return_medicine": 0.00799543118218161
+      },
+      "wait_share": 0.03597944031981725,
+      "algo": "dqn",
+      "config_name": "baseline_double_dqn"
+    },
+    "dqn_exp02": {
+      "episodes": 100,
+      "return_mean": 5.790366666666664,
+      "return_std": 2.3788875035285812,
+      "return_sem": 0.23908718992938063,
+      "success": 0.95,
+      "minutes_mean": 26.39,
+      "outcomes": {
+        "delivered": 79,
+        "returned": 16,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 5,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.11010215664018161,
+        "ride_east": 0.24120317820658344,
+        "ride_south": 0.08569807037457434,
+        "ride_west": 0.056753688989784334,
+        "cover_box": 0.06583427922814983,
+        "wait": 0.024404086265607264,
+        "enter_pharmacy": 0.056753688989784334,
+        "collect_order": 0.056753688989784334,
+        "park_and_walk_in": 0.055051078320090804,
+        "knock_or_check_in": 0.055051078320090804,
+        "carry_to_patient": 0.055051078320090804,
+        "verify_prescription": 0.028376844494892167,
+        "hand_over": 0.044835414301929624,
+        "scan_qr": 0.044835414301929624,
+        "walk_back_to_bike": 0.01021566401816118,
+        "return_medicine": 0.009080590238365494
+      },
+      "wait_share": 0.024404086265607264,
+      "algo": "dqn",
+      "config_name": "slower_learning_rate"
+    },
+    "dqn_exp03": {
+      "episodes": 100,
+      "return_mean": 4.327988,
+      "return_std": 3.3628118544440357,
+      "return_sem": 0.3379753079318213,
+      "success": 0.86,
+      "minutes_mean": 33.26,
+      "outcomes": {
+        "delivered": 73,
+        "returned": 13,
+        "violation": 0,
+        "ruined": 2,
+        "cancelled": 12,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.05722070844686648,
+        "ride_east": 0.3142597638510445,
+        "ride_south": 0.041326067211625794,
+        "ride_west": 0.164850136239782,
+        "cover_box": 0.04405086285195277,
+        "wait": 0.06584922797456857,
+        "enter_pharmacy": 0.045413260672116255,
+        "collect_order": 0.045413260672116255,
+        "park_and_walk_in": 0.04087193460490463,
+        "knock_or_check_in": 0.04087193460490463,
+        "carry_to_patient": 0.04041780199818347,
+        "verify_prescription": 0.019981834695731154,
+        "hand_over": 0.033151680290644865,
+        "scan_qr": 0.033151680290644865,
+        "walk_back_to_bike": 0.007266121707538601,
+        "return_medicine": 0.005903723887375113
+      },
+      "wait_share": 0.06584922797456857,
+      "algo": "dqn",
+      "config_name": "faster_learning_rate"
+    },
+    "dqn_exp04": {
+      "episodes": 100,
+      "return_mean": 6.019826666666667,
+      "return_std": 1.4657319699802627,
+      "return_sem": 0.14731160568645443,
+      "success": 0.98,
+      "minutes_mean": 24.56,
+      "outcomes": {
+        "delivered": 81,
+        "returned": 17,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 2,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.06388888888888888,
+        "ride_east": 0.27569444444444446,
+        "ride_south": 0.03611111111111111,
+        "ride_west": 0.052083333333333336,
+        "cover_box": 0.05138888888888889,
+        "wait": 0.0,
+        "enter_pharmacy": 0.06944444444444445,
+        "collect_order": 0.06944444444444445,
+        "park_and_walk_in": 0.06944444444444445,
+        "knock_or_check_in": 0.06944444444444445,
+        "carry_to_patient": 0.06944444444444445,
+        "verify_prescription": 0.03611111111111111,
+        "hand_over": 0.05625,
+        "scan_qr": 0.05625,
+        "walk_back_to_bike": 0.013194444444444444,
+        "return_medicine": 0.011805555555555555
+      },
+      "wait_share": 0.0,
+      "algo": "dqn",
+      "config_name": "myopic_gamma"
+    },
+    "dqn_exp05": {
+      "episodes": 100,
+      "return_mean": 4.622638666666665,
+      "return_std": 3.114724379504977,
+      "return_sem": 0.3130415785512287,
+      "success": 0.89,
+      "minutes_mean": 32.63,
+      "outcomes": {
+        "delivered": 74,
+        "returned": 15,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 11,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.12406639004149378,
+        "ride_east": 0.22406639004149378,
+        "ride_south": 0.1087136929460581,
+        "ride_west": 0.08589211618257261,
+        "cover_box": 0.04439834024896266,
+        "wait": 0.11950207468879669,
+        "enter_pharmacy": 0.04149377593360996,
+        "collect_order": 0.04149377593360996,
+        "park_and_walk_in": 0.03900414937759336,
+        "knock_or_check_in": 0.03900414937759336,
+        "carry_to_patient": 0.03858921161825726,
+        "verify_prescription": 0.01867219917012448,
+        "hand_over": 0.03112033195020747,
+        "scan_qr": 0.030705394190871368,
+        "walk_back_to_bike": 0.007053941908713693,
+        "return_medicine": 0.006224066390041493
+      },
+      "wait_share": 0.11950207468879669,
+      "algo": "dqn",
+      "config_name": "far_sighted_gamma"
+    },
+    "dqn_exp06": {
+      "episodes": 100,
+      "return_mean": 5.761878666666666,
+      "return_std": 2.1224960985150374,
+      "return_sem": 0.21331888417477546,
+      "success": 0.95,
+      "minutes_mean": 28.22,
+      "outcomes": {
+        "delivered": 81,
+        "returned": 14,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 5,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.1076923076923077,
+        "ride_east": 0.24670329670329672,
+        "ride_south": 0.08681318681318681,
+        "ride_west": 0.06813186813186813,
+        "cover_box": 0.06373626373626373,
+        "wait": 0.016483516483516484,
+        "enter_pharmacy": 0.054945054945054944,
+        "collect_order": 0.054945054945054944,
+        "park_and_walk_in": 0.054945054945054944,
+        "knock_or_check_in": 0.054945054945054944,
+        "carry_to_patient": 0.054945054945054944,
+        "verify_prescription": 0.02857142857142857,
+        "hand_over": 0.04450549450549451,
+        "scan_qr": 0.04450549450549451,
+        "walk_back_to_bike": 0.010439560439560439,
+        "return_medicine": 0.007692307692307693
+      },
+      "wait_share": 0.016483516483516484,
+      "algo": "dqn",
+      "config_name": "explore_briefly"
+    },
+    "dqn_exp07": {
+      "episodes": 100,
+      "return_mean": 5.070033333333333,
+      "return_std": 3.430624290313483,
+      "return_sem": 0.3447907141711848,
+      "success": 0.84,
+      "minutes_mean": 29.27,
+      "outcomes": {
+        "delivered": 81,
+        "returned": 3,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 16,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.09659090909090909,
+        "ride_east": 0.2636363636363636,
+        "ride_south": 0.07727272727272727,
+        "ride_west": 0.06761363636363636,
+        "cover_box": 0.06761363636363636,
+        "wait": 0.00909090909090909,
+        "enter_pharmacy": 0.056818181818181816,
+        "collect_order": 0.056818181818181816,
+        "park_and_walk_in": 0.056818181818181816,
+        "knock_or_check_in": 0.056818181818181816,
+        "carry_to_patient": 0.056818181818181816,
+        "verify_prescription": 0.029545454545454545,
+        "hand_over": 0.04602272727272727,
+        "scan_qr": 0.04602272727272727,
+        "walk_back_to_bike": 0.010795454545454546,
+        "return_medicine": 0.0017045454545454545
+      },
+      "wait_share": 0.00909090909090909,
+      "algo": "dqn",
+      "config_name": "explore_longer"
+    },
+    "dqn_exp08": {
+      "episodes": 100,
+      "return_mean": 5.601304000000002,
+      "return_std": 2.2042547583822216,
+      "return_sem": 0.22153593866391902,
+      "success": 0.96,
+      "minutes_mean": 27.41,
+      "outcomes": {
+        "delivered": 79,
+        "returned": 17,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 4,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.11370262390670553,
+        "ride_east": 0.23790087463556853,
+        "ride_south": 0.08979591836734693,
+        "ride_west": 0.046064139941690965,
+        "cover_box": 0.0565597667638484,
+        "wait": 0.02507288629737609,
+        "enter_pharmacy": 0.05830903790087463,
+        "collect_order": 0.05830903790087463,
+        "park_and_walk_in": 0.05772594752186589,
+        "knock_or_check_in": 0.05772594752186589,
+        "carry_to_patient": 0.05714285714285714,
+        "verify_prescription": 0.029154518950437316,
+        "hand_over": 0.046064139941690965,
+        "scan_qr": 0.046064139941690965,
+        "walk_back_to_bike": 0.010495626822157435,
+        "return_medicine": 0.009912536443148687
+      },
+      "wait_share": 0.02507288629737609,
+      "algo": "dqn",
+      "config_name": "small_replay"
+    },
+    "dqn_exp09": {
+      "episodes": 100,
+      "return_mean": 5.9261599999999985,
+      "return_std": 1.4734823922184404,
+      "return_sem": 0.1480905524298139,
+      "success": 0.99,
+      "minutes_mean": 27.4,
+      "outcomes": {
+        "delivered": 80,
+        "returned": 19,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 1,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.08391234633885623,
+        "ride_east": 0.2330304649919829,
+        "ride_south": 0.06199893105291288,
+        "ride_west": 0.0603955104222341,
+        "cover_box": 0.0603955104222341,
+        "wait": 0.10154997327632283,
+        "enter_pharmacy": 0.05344735435595938,
+        "collect_order": 0.05344735435595938,
+        "park_and_walk_in": 0.05291288081239979,
+        "knock_or_check_in": 0.05291288081239979,
+        "carry_to_patient": 0.05291288081239979,
+        "verify_prescription": 0.027258150721539285,
+        "hand_over": 0.04275788348476751,
+        "scan_qr": 0.04275788348476751,
+        "walk_back_to_bike": 0.010154997327632281,
+        "return_medicine": 0.010154997327632281
+      },
+      "wait_share": 0.10154997327632283,
+      "algo": "dqn",
+      "config_name": "fast_target_updates"
+    },
+    "dqn_exp10": {
+      "episodes": 100,
+      "return_mean": 4.141893333333332,
+      "return_std": 4.085244109295469,
+      "return_sem": 0.41058248144068843,
+      "success": 0.79,
+      "minutes_mean": 32.2,
+      "outcomes": {
+        "delivered": 70,
+        "returned": 9,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 21,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.14034275127373785,
+        "ride_east": 0.25984251968503935,
+        "ride_south": 0.1222788327929597,
+        "ride_west": 0.09726725335803613,
+        "cover_box": 0.04353867531264474,
+        "wait": 0.03937007874015748,
+        "enter_pharmacy": 0.04631773969430292,
+        "collect_order": 0.04631773969430292,
+        "park_and_walk_in": 0.03798054654932839,
+        "knock_or_check_in": 0.03798054654932839,
+        "carry_to_patient": 0.03798054654932839,
+        "verify_prescription": 0.01621120889300602,
+        "hand_over": 0.03242241778601204,
+        "scan_qr": 0.03242241778601204,
+        "walk_back_to_bike": 0.00555812876331635,
+        "return_medicine": 0.0041685965724872626
+      },
+      "wait_share": 0.03937007874015748,
+      "algo": "dqn",
+      "config_name": "vanilla_dqn_wide_net"
+    },
+    "a2c_exp01": {
+      "episodes": 100,
+      "return_mean": -1.2882333333333333,
+      "return_std": 4.374763294041048,
+      "return_sem": 0.43968025433192093,
+      "success": 0.27,
+      "minutes_mean": 49.19,
+      "outcomes": {
+        "delivered": 27,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 73,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.2796011632737848,
+        "ride_east": 0.2077274615704196,
+        "ride_south": 0.2447029497299543,
+        "ride_west": 0.0,
+        "cover_box": 0.04403822185292896,
+        "wait": 0.0677191524719568,
+        "enter_pharmacy": 0.04154549231408392,
+        "collect_order": 0.04154549231408392,
+        "park_and_walk_in": 0.013710012463647694,
+        "knock_or_check_in": 0.013710012463647694,
+        "carry_to_patient": 0.013710012463647694,
+        "verify_prescription": 0.007062733693394266,
+        "hand_over": 0.011217282924802658,
+        "scan_qr": 0.011217282924802658,
+        "walk_back_to_bike": 0.0024927295388450354,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.0677191524719568,
+      "algo": "a2c",
+      "config_name": "baseline"
+    },
+    "a2c_exp02": {
+      "episodes": 100,
+      "return_mean": -1.3813546666666667,
+      "return_std": 4.567437283990809,
+      "return_sem": 0.4590447189235592,
+      "success": 0.26,
+      "minutes_mean": 47.25,
+      "outcomes": {
+        "delivered": 26,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 74,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.16995544239338,
+        "ride_east": 0.26543602800763844,
+        "ride_south": 0.11012094207511139,
+        "ride_west": 0.12571610439210693,
+        "cover_box": 0.03437301082113304,
+        "wait": 0.17313812858052197,
+        "enter_pharmacy": 0.031826861871419476,
+        "collect_order": 0.031826861871419476,
+        "park_and_walk_in": 0.010821133036282623,
+        "knock_or_check_in": 0.010821133036282623,
+        "carry_to_patient": 0.010821133036282623,
+        "verify_prescription": 0.0060471037555697,
+        "hand_over": 0.008274984086569064,
+        "scan_qr": 0.008274984086569064,
+        "walk_back_to_bike": 0.002546148949713558,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.17313812858052197,
+      "algo": "a2c",
+      "config_name": "small_learning_rate"
+    },
+    "a2c_exp03": {
+      "episodes": 100,
+      "return_mean": 4.927777333333333,
+      "return_std": 3.9370916361104253,
+      "return_sem": 0.3956925976431739,
+      "success": 0.81,
+      "minutes_mean": 28.57,
+      "outcomes": {
+        "delivered": 81,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 19,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.1506228765571914,
+        "ride_east": 0.2332955832389581,
+        "ride_south": 0.13363533408833522,
+        "ride_west": 0.0,
+        "cover_box": 0.06738391845979615,
+        "wait": 0.0,
+        "enter_pharmacy": 0.056625141562853906,
+        "collect_order": 0.056625141562853906,
+        "park_and_walk_in": 0.056625141562853906,
+        "knock_or_check_in": 0.056625141562853906,
+        "carry_to_patient": 0.056625141562853906,
+        "verify_prescription": 0.02944507361268403,
+        "hand_over": 0.045866364665911666,
+        "scan_qr": 0.045866364665911666,
+        "walk_back_to_bike": 0.010758776896942242,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.0,
+      "algo": "a2c",
+      "config_name": "large_learning_rate"
+    },
+    "a2c_exp04": {
+      "episodes": 100,
+      "return_mean": 0.0763333333333332,
+      "return_std": 5.062888185391593,
+      "return_sem": 0.5088394080747644,
+      "success": 0.4,
+      "minutes_mean": 44.36,
+      "outcomes": {
+        "delivered": 40,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 60,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.24091695501730104,
+        "ride_east": 0.2041522491349481,
+        "ride_south": 0.18685121107266436,
+        "ride_west": 0.0,
+        "cover_box": 0.04844290657439446,
+        "wait": 0.11332179930795848,
+        "enter_pharmacy": 0.04325259515570934,
+        "collect_order": 0.04325259515570934,
+        "park_and_walk_in": 0.02249134948096886,
+        "knock_or_check_in": 0.02249134948096886,
+        "carry_to_patient": 0.02249134948096886,
+        "verify_prescription": 0.012543252595155709,
+        "hand_over": 0.01730103806228374,
+        "scan_qr": 0.01730103806228374,
+        "walk_back_to_bike": 0.005190311418685121,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.11332179930795848,
+      "algo": "a2c",
+      "config_name": "no_entropy"
+    },
+    "a2c_exp05": {
+      "episodes": 100,
+      "return_mean": -1.2315333333333331,
+      "return_std": 4.336062689686219,
+      "return_sem": 0.43579069724692204,
+      "success": 0.27,
+      "minutes_mean": 49.22,
+      "outcomes": {
+        "delivered": 27,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 73,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.29995739241585,
+        "ride_east": 0.21303792074989347,
+        "ride_south": 0.28163613123135917,
+        "ride_west": 0.0,
+        "cover_box": 0.04516403919897742,
+        "wait": 0.0,
+        "enter_pharmacy": 0.04260758414997869,
+        "collect_order": 0.04260758414997869,
+        "park_and_walk_in": 0.01406050276949297,
+        "knock_or_check_in": 0.01406050276949297,
+        "carry_to_patient": 0.01406050276949297,
+        "verify_prescription": 0.007243289305496378,
+        "hand_over": 0.011504047720494247,
+        "scan_qr": 0.011504047720494247,
+        "walk_back_to_bike": 0.0025564550489987218,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.0,
+      "algo": "a2c",
+      "config_name": "high_entropy"
+    },
+    "a2c_exp06": {
+      "episodes": 100,
+      "return_mean": -1.1432546666666668,
+      "return_std": 4.624705839710889,
+      "return_sem": 0.4648004253359551,
+      "success": 0.33,
+      "minutes_mean": 47.58,
+      "outcomes": {
+        "delivered": 33,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 67,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.21761467889908256,
+        "ride_east": 0.17908256880733944,
+        "ride_south": 0.23559633027522936,
+        "ride_west": 0.0,
+        "cover_box": 0.009908256880733945,
+        "wait": 0.20733944954128442,
+        "enter_pharmacy": 0.03669724770642202,
+        "collect_order": 0.03669724770642202,
+        "park_and_walk_in": 0.014311926605504587,
+        "knock_or_check_in": 0.014311926605504587,
+        "carry_to_patient": 0.014311926605504587,
+        "verify_prescription": 0.007706422018348624,
+        "hand_over": 0.012110091743119266,
+        "scan_qr": 0.012110091743119266,
+        "walk_back_to_bike": 0.0022018348623853213,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.20733944954128442,
+      "algo": "a2c",
+      "config_name": "small_network"
+    },
+    "a2c_exp07": {
+      "episodes": 100,
+      "return_mean": 1.624066666666667,
+      "return_std": 4.953594936564309,
+      "return_sem": 0.49785502327236875,
+      "success": 0.56,
+      "minutes_mean": 41.22,
+      "outcomes": {
+        "delivered": 56,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 44,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.2209051724137931,
+        "ride_east": 0.24676724137931033,
+        "ride_south": 0.1627155172413793,
+        "ride_west": 0.0,
+        "cover_box": 0.061422413793103446,
+        "wait": 0.0,
+        "enter_pharmacy": 0.05387931034482758,
+        "collect_order": 0.05387931034482758,
+        "park_and_walk_in": 0.03771551724137931,
+        "knock_or_check_in": 0.03771551724137931,
+        "carry_to_patient": 0.03771551724137931,
+        "verify_prescription": 0.01939655172413793,
+        "hand_over": 0.03017241379310345,
+        "scan_qr": 0.03017241379310345,
+        "walk_back_to_bike": 0.007543103448275862,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.0,
+      "algo": "a2c",
+      "config_name": "loose_gradient_clip"
+    },
+    "a2c_exp08": {
+      "episodes": 100,
+      "return_mean": -1.3001333333333331,
+      "return_std": 4.377406916835075,
+      "return_sem": 0.43994594841964874,
+      "success": 0.27,
+      "minutes_mean": 49.04,
+      "outcomes": {
+        "delivered": 27,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 73,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.2529717682020802,
+        "ride_east": 0.18573551263001487,
+        "ride_south": 0.24071322436849926,
+        "ride_west": 0.0,
+        "cover_box": 0.03937592867756315,
+        "wait": 0.14153046062407132,
+        "enter_pharmacy": 0.03714710252600297,
+        "collect_order": 0.03714710252600297,
+        "park_and_walk_in": 0.01225854383358098,
+        "knock_or_check_in": 0.01225854383358098,
+        "carry_to_patient": 0.01225854383358098,
+        "verify_prescription": 0.006315007429420505,
+        "hand_over": 0.010029717682020803,
+        "scan_qr": 0.010029717682020803,
+        "walk_back_to_bike": 0.002228826151560178,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.14153046062407132,
+      "algo": "a2c",
+      "config_name": "myopic_gamma"
+    },
+    "a2c_exp09": {
+      "episodes": 100,
+      "return_mean": 5.952866666666665,
+      "return_std": 1.6885795490095612,
+      "return_sem": 0.16970863008279552,
+      "success": 0.97,
+      "minutes_mean": 26.28,
+      "outcomes": {
+        "delivered": 81,
+        "returned": 16,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 3,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.06025727826675694,
+        "ride_east": 0.2694651320243737,
+        "ride_south": 0.03317535545023697,
+        "ride_west": 0.04942450914014895,
+        "cover_box": 0.08056872037914692,
+        "wait": 0.0,
+        "enter_pharmacy": 0.06770480704129993,
+        "collect_order": 0.06770480704129993,
+        "park_and_walk_in": 0.06770480704129993,
+        "knock_or_check_in": 0.06770480704129993,
+        "carry_to_patient": 0.06770480704129993,
+        "verify_prescription": 0.035206499661475966,
+        "hand_over": 0.05484089370345294,
+        "scan_qr": 0.05484089370345294,
+        "walk_back_to_bike": 0.012863913337846988,
+        "return_medicine": 0.010832769126607989
+      },
+      "wait_share": 0.0,
+      "algo": "a2c",
+      "config_name": "short_rollout"
+    },
+    "a2c_exp10": {
+      "episodes": 100,
+      "return_mean": -1.792997333333333,
+      "return_std": 4.246220473910835,
+      "return_sem": 0.4267612148208282,
+      "success": 0.26,
+      "minutes_mean": 49.47,
+      "outcomes": {
+        "delivered": 26,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 74,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.25181159420289856,
+        "ride_east": 0.1822463768115942,
+        "ride_south": 0.22644927536231885,
+        "ride_west": 0.0010869565217391304,
+        "cover_box": 0.03804347826086957,
+        "wait": 0.1677536231884058,
+        "enter_pharmacy": 0.036231884057971016,
+        "collect_order": 0.036231884057971016,
+        "park_and_walk_in": 0.011231884057971014,
+        "knock_or_check_in": 0.011231884057971014,
+        "carry_to_patient": 0.011231884057971014,
+        "verify_prescription": 0.005797101449275362,
+        "hand_over": 0.009420289855072464,
+        "scan_qr": 0.009420289855072464,
+        "walk_back_to_bike": 0.0018115942028985507,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.1677536231884058,
+      "algo": "a2c",
+      "config_name": "long_rollout_wide_net"
+    },
+    "ppo_exp01": {
+      "episodes": 100,
+      "return_mean": 4.7932999999999995,
+      "return_std": 3.697580364839207,
+      "return_sem": 0.3716208091623357,
+      "success": 0.82,
+      "minutes_mean": 30.53,
+      "outcomes": {
+        "delivered": 81,
+        "returned": 1,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 18,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.13028764805414553,
+        "ride_east": 0.24027072758037224,
+        "ride_south": 0.10321489001692047,
+        "ride_west": 0.02820078962210942,
+        "cover_box": 0.06711787930062042,
+        "wait": 0.01692047377326565,
+        "enter_pharmacy": 0.05640157924421884,
+        "collect_order": 0.05640157924421884,
+        "park_and_walk_in": 0.05640157924421884,
+        "knock_or_check_in": 0.05640157924421884,
+        "carry_to_patient": 0.05640157924421884,
+        "verify_prescription": 0.029328821206993795,
+        "hand_over": 0.04568527918781726,
+        "scan_qr": 0.04568527918781726,
+        "walk_back_to_bike": 0.01071630005640158,
+        "return_medicine": 0.0005640157924421884
+      },
+      "wait_share": 0.01692047377326565,
+      "algo": "ppo",
+      "config_name": "baseline"
+    },
+    "ppo_exp02": {
+      "episodes": 100,
+      "return_mean": 5.7549,
+      "return_std": 1.866872456215951,
+      "return_sem": 0.18762774147628786,
+      "success": 0.96,
+      "minutes_mean": 28.01,
+      "outcomes": {
+        "delivered": 81,
+        "returned": 15,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 4,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.06300268096514745,
+        "ride_east": 0.2667560321715818,
+        "ride_south": 0.035522788203753354,
+        "ride_west": 0.04758713136729222,
+        "cover_box": 0.07975871313672922,
+        "wait": 0.006032171581769437,
+        "enter_pharmacy": 0.06702412868632708,
+        "collect_order": 0.06702412868632708,
+        "park_and_walk_in": 0.06702412868632708,
+        "knock_or_check_in": 0.06702412868632708,
+        "carry_to_patient": 0.06702412868632708,
+        "verify_prescription": 0.03485254691689008,
+        "hand_over": 0.054289544235924934,
+        "scan_qr": 0.054289544235924934,
+        "walk_back_to_bike": 0.012734584450402145,
+        "return_medicine": 0.010053619302949061
+      },
+      "wait_share": 0.006032171581769437,
+      "algo": "ppo",
+      "config_name": "tight_clip"
+    },
+    "ppo_exp03": {
+      "episodes": 100,
+      "return_mean": 5.623599999999999,
+      "return_std": 2.4356310010618056,
+      "return_sem": 0.24479012600847647,
+      "success": 0.93,
+      "minutes_mean": 28.78,
+      "outcomes": {
+        "delivered": 81,
+        "returned": 12,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 7,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.06745783885071831,
+        "ride_east": 0.27607745159275454,
+        "ride_south": 0.04559650218613367,
+        "ride_west": 0.0712054965646471,
+        "cover_box": 0.07432854465958776,
+        "wait": 0.0,
+        "enter_pharmacy": 0.06246096189881324,
+        "collect_order": 0.06246096189881324,
+        "park_and_walk_in": 0.06246096189881324,
+        "knock_or_check_in": 0.06246096189881324,
+        "carry_to_patient": 0.06246096189881324,
+        "verify_prescription": 0.03247970018738289,
+        "hand_over": 0.05059337913803873,
+        "scan_qr": 0.05059337913803873,
+        "walk_back_to_bike": 0.011867582760774516,
+        "return_medicine": 0.007495315427857589
+      },
+      "wait_share": 0.0,
+      "algo": "ppo",
+      "config_name": "wide_clip"
+    },
+    "ppo_exp04": {
+      "episodes": 100,
+      "return_mean": 4.718666666666667,
+      "return_std": 3.82999126775912,
+      "return_sem": 0.3849286056210486,
+      "success": 0.81,
+      "minutes_mean": 29.98,
+      "outcomes": {
+        "delivered": 81,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 19,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.1494192185850053,
+        "ride_east": 0.2096092925026399,
+        "ride_south": 0.12513199577613515,
+        "ride_west": 0.0,
+        "cover_box": 0.06282998944033791,
+        "wait": 0.06599788806758183,
+        "enter_pharmacy": 0.05279831045406547,
+        "collect_order": 0.05279831045406547,
+        "park_and_walk_in": 0.05279831045406547,
+        "knock_or_check_in": 0.05279831045406547,
+        "carry_to_patient": 0.05279831045406547,
+        "verify_prescription": 0.027455121436114043,
+        "hand_over": 0.04276663146779303,
+        "scan_qr": 0.04276663146779303,
+        "walk_back_to_bike": 0.01003167898627244,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.06599788806758183,
+      "algo": "ppo",
+      "config_name": "no_entropy"
+    },
+    "ppo_exp05": {
+      "episodes": 100,
+      "return_mean": 5.439658666666666,
+      "return_std": 2.2866511436845314,
+      "return_sem": 0.22981708697086806,
+      "success": 0.93,
+      "minutes_mean": 28.76,
+      "outcomes": {
+        "delivered": 80,
+        "returned": 13,
+        "violation": 0,
+        "ruined": 1,
+        "cancelled": 6,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.06499661475964794,
+        "ride_east": 0.26878808395396075,
+        "ride_south": 0.037237643872714964,
+        "ride_west": 0.046039268788083954,
+        "cover_box": 0.07989167230873392,
+        "wait": 0.0,
+        "enter_pharmacy": 0.06770480704129993,
+        "collect_order": 0.06770480704129993,
+        "park_and_walk_in": 0.06770480704129993,
+        "knock_or_check_in": 0.06770480704129993,
+        "carry_to_patient": 0.06702775897088693,
+        "verify_prescription": 0.035206499661475966,
+        "hand_over": 0.05416384563303995,
+        "scan_qr": 0.05416384563303995,
+        "walk_back_to_bike": 0.012863913337846988,
+        "return_medicine": 0.008801624915368992
+      },
+      "wait_share": 0.0,
+      "algo": "ppo",
+      "config_name": "high_entropy"
+    },
+    "ppo_exp06": {
+      "episodes": 100,
+      "return_mean": 6.050999999999999,
+      "return_std": 1.5593664311721818,
+      "return_sem": 0.15672222311738443,
+      "success": 0.98,
+      "minutes_mean": 26.26,
+      "outcomes": {
+        "delivered": 81,
+        "returned": 17,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 2,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.06546426185704743,
+        "ride_east": 0.2651970607882432,
+        "ride_south": 0.0394121576486306,
+        "ride_west": 0.049432197728790914,
+        "cover_box": 0.07949231796927188,
+        "wait": 0.0,
+        "enter_pharmacy": 0.06680026720106881,
+        "collect_order": 0.06680026720106881,
+        "park_and_walk_in": 0.06680026720106881,
+        "knock_or_check_in": 0.06680026720106881,
+        "carry_to_patient": 0.06680026720106881,
+        "verify_prescription": 0.03473613894455578,
+        "hand_over": 0.05410821643286573,
+        "scan_qr": 0.05410821643286573,
+        "walk_back_to_bike": 0.012692050768203072,
+        "return_medicine": 0.011356045424181697
+      },
+      "wait_share": 0.0,
+      "algo": "ppo",
+      "config_name": "short_gae"
+    },
+    "ppo_exp07": {
+      "episodes": 100,
+      "return_mean": 2.8495999999999997,
+      "return_std": 4.7809139358727455,
+      "return_sem": 0.48049992970518646,
+      "success": 0.65,
+      "minutes_mean": 36.76,
+      "outcomes": {
+        "delivered": 65,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 35,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.1220492214967353,
+        "ride_east": 0.28679055750878957,
+        "ride_south": 0.1150175791059769,
+        "ride_west": 0.06931190356604722,
+        "cover_box": 0.05826217980914113,
+        "wait": 0.029131089904570567,
+        "enter_pharmacy": 0.050226017076845805,
+        "collect_order": 0.050226017076845805,
+        "park_and_walk_in": 0.040683073832245106,
+        "knock_or_check_in": 0.040683073832245106,
+        "carry_to_patient": 0.040683073832245106,
+        "verify_prescription": 0.023606228026117528,
+        "hand_over": 0.03264691109994977,
+        "scan_qr": 0.03264691109994977,
+        "walk_back_to_bike": 0.00803616273229533,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.029131089904570567,
+      "algo": "ppo",
+      "config_name": "long_gae"
+    },
+    "ppo_exp08": {
+      "episodes": 100,
+      "return_mean": -1.5195333333333332,
+      "return_std": 4.422440905201561,
+      "return_sem": 0.44447203454767487,
+      "success": 0.27,
+      "minutes_mean": 49.3,
+      "outcomes": {
+        "delivered": 27,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 73,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.22007575757575756,
+        "ride_east": 0.1893939393939394,
+        "ride_south": 0.23636363636363636,
+        "ride_west": 0.0,
+        "cover_box": 0.04015151515151515,
+        "wait": 0.1715909090909091,
+        "enter_pharmacy": 0.03787878787878788,
+        "collect_order": 0.03787878787878788,
+        "park_and_walk_in": 0.0125,
+        "knock_or_check_in": 0.0125,
+        "carry_to_patient": 0.0125,
+        "verify_prescription": 0.006439393939393939,
+        "hand_over": 0.010227272727272727,
+        "scan_qr": 0.010227272727272727,
+        "walk_back_to_bike": 0.0022727272727272726,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.1715909090909091,
+      "algo": "ppo",
+      "config_name": "single_epoch"
+    },
+    "ppo_exp09": {
+      "episodes": 100,
+      "return_mean": 5.936178666666666,
+      "return_std": 1.9460079440943252,
+      "return_sem": 0.19558115726096315,
+      "success": 0.96,
+      "minutes_mean": 26.66,
+      "outcomes": {
+        "delivered": 81,
+        "returned": 15,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 4,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.07717462393721386,
+        "ride_east": 0.2603008502289078,
+        "ride_south": 0.04970568999345978,
+        "ride_west": 0.04578155657292348,
+        "cover_box": 0.07782864617396991,
+        "wait": 0.0,
+        "enter_pharmacy": 0.06540222367560497,
+        "collect_order": 0.06540222367560497,
+        "park_and_walk_in": 0.06540222367560497,
+        "knock_or_check_in": 0.06540222367560497,
+        "carry_to_patient": 0.06540222367560497,
+        "verify_prescription": 0.034009156311314584,
+        "hand_over": 0.052975801177240024,
+        "scan_qr": 0.052975801177240024,
+        "walk_back_to_bike": 0.012426422498364944,
+        "return_medicine": 0.009810333551340745
+      },
+      "wait_share": 0.0,
+      "algo": "ppo",
+      "config_name": "ten_epochs"
+    },
+    "ppo_exp10": {
+      "episodes": 100,
+      "return_mean": 5.769699999999999,
+      "return_std": 2.441339254270992,
+      "return_sem": 0.24536382704190718,
+      "success": 0.95,
+      "minutes_mean": 26.83,
+      "outcomes": {
+        "delivered": 79,
+        "returned": 16,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 5,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.1262656343061346,
+        "ride_east": 0.22930315664085765,
+        "ride_south": 0.10125074449076832,
+        "ride_west": 0.03871351995235259,
+        "cover_box": 0.06968433591423466,
+        "wait": 0.0,
+        "enter_pharmacy": 0.05955926146515783,
+        "collect_order": 0.05955926146515783,
+        "park_and_walk_in": 0.057772483621203095,
+        "knock_or_check_in": 0.057772483621203095,
+        "carry_to_patient": 0.057772483621203095,
+        "verify_prescription": 0.02858844550327576,
+        "hand_over": 0.04705181655747469,
+        "scan_qr": 0.04705181655747469,
+        "walk_back_to_bike": 0.01012507444907683,
+        "return_medicine": 0.009529481834425254
+      },
+      "wait_share": 0.0,
+      "algo": "ppo",
+      "config_name": "fast_lr_short_rollout"
+    },
+    "reinforce_exp01": {
+      "episodes": 100,
+      "return_mean": -2.1470973333333334,
+      "return_std": 4.027447552928888,
+      "return_sem": 0.4047737089666709,
+      "success": 0.21,
+      "minutes_mean": 50.26,
+      "outcomes": {
+        "delivered": 21,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 79,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.26767304860088365,
+        "ride_east": 0.18409425625920472,
+        "ride_south": 0.22275405007363772,
+        "ride_west": 0.0,
+        "cover_box": 0.03755522827687776,
+        "wait": 0.16863033873343153,
+        "enter_pharmacy": 0.036818851251840944,
+        "collect_order": 0.036818851251840944,
+        "park_and_walk_in": 0.008468335787923416,
+        "knock_or_check_in": 0.008468335787923416,
+        "carry_to_patient": 0.008468335787923416,
+        "verify_prescription": 0.004050073637702504,
+        "hand_over": 0.007731958762886598,
+        "scan_qr": 0.007731958762886598,
+        "walk_back_to_bike": 0.0007363770250368188,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.16863033873343153,
+      "algo": "reinforce",
+      "config_name": "baseline_with_baseline"
+    },
+    "reinforce_exp02": {
+      "episodes": 100,
+      "return_mean": -1.5423333333333331,
+      "return_std": 4.436470782051877,
+      "return_sem": 0.44588209022547465,
+      "success": 0.27,
+      "minutes_mean": 49.26,
+      "outcomes": {
+        "delivered": 27,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 73,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.21877365632096896,
+        "ride_east": 0.18925056775170326,
+        "ride_south": 0.2384557153671461,
+        "ride_west": 0.0,
+        "cover_box": 0.04012112036336109,
+        "wait": 0.17108251324753973,
+        "enter_pharmacy": 0.03785011355034065,
+        "collect_order": 0.03785011355034065,
+        "park_and_walk_in": 0.012490537471612415,
+        "knock_or_check_in": 0.012490537471612415,
+        "carry_to_patient": 0.012490537471612415,
+        "verify_prescription": 0.006434519303557911,
+        "hand_over": 0.010219530658591975,
+        "scan_qr": 0.010219530658591975,
+        "walk_back_to_bike": 0.002271006813020439,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.17108251324753973,
+      "algo": "reinforce",
+      "config_name": "no_baseline"
+    },
+    "reinforce_exp03": {
+      "episodes": 100,
+      "return_mean": -1.5504213333333334,
+      "return_std": 4.496210870488666,
+      "return_sem": 0.45188619502206484,
+      "success": 0.25,
+      "minutes_mean": 47.79,
+      "outcomes": {
+        "delivered": 25,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 75,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.25478099938309684,
+        "ride_east": 0.17550894509561998,
+        "ride_south": 0.19895126465144972,
+        "ride_west": 0.0431832202344232,
+        "cover_box": 0.03300431832202344,
+        "wait": 0.1798272671190623,
+        "enter_pharmacy": 0.030845157310302282,
+        "collect_order": 0.030845157310302282,
+        "park_and_walk_in": 0.010178901912399754,
+        "knock_or_check_in": 0.010178901912399754,
+        "carry_to_patient": 0.00987045033929673,
+        "verify_prescription": 0.005243676742751388,
+        "hand_over": 0.0077112893275755705,
+        "scan_qr": 0.0077112893275755705,
+        "walk_back_to_bike": 0.00215916101172116,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.1798272671190623,
+      "algo": "reinforce",
+      "config_name": "small_learning_rate"
+    },
+    "reinforce_exp04": {
+      "episodes": 100,
+      "return_mean": 0.18523333333333336,
+      "return_std": 5.234982076501207,
+      "return_sem": 0.5261354949087906,
+      "success": 0.41,
+      "minutes_mean": 39.21,
+      "outcomes": {
+        "delivered": 41,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 6,
+        "cancelled": 53,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.26706484641638223,
+        "ride_east": 0.20051194539249148,
+        "ride_south": 0.2909556313993174,
+        "ride_west": 0.0,
+        "cover_box": 0.043515358361774746,
+        "wait": 0.0,
+        "enter_pharmacy": 0.042662116040955635,
+        "collect_order": 0.042662116040955635,
+        "park_and_walk_in": 0.020904436860068258,
+        "knock_or_check_in": 0.020904436860068258,
+        "carry_to_patient": 0.020904436860068258,
+        "verify_prescription": 0.01151877133105802,
+        "hand_over": 0.01749146757679181,
+        "scan_qr": 0.01749146757679181,
+        "walk_back_to_bike": 0.0034129692832764505,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.0,
+      "algo": "reinforce",
+      "config_name": "large_learning_rate"
+    },
+    "reinforce_exp05": {
+      "episodes": 100,
+      "return_mean": -1.3995333333333333,
+      "return_std": 4.350649785951519,
+      "return_sem": 0.4372567555830673,
+      "success": 0.27,
+      "minutes_mean": 49.22,
+      "outcomes": {
+        "delivered": 27,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 73,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.24574737604053565,
+        "ride_east": 0.18096272167933405,
+        "ride_south": 0.23525153818313427,
+        "ride_west": 0.0,
+        "cover_box": 0.03836409699601882,
+        "wait": 0.16359030039811798,
+        "enter_pharmacy": 0.036192544335866814,
+        "collect_order": 0.036192544335866814,
+        "park_and_walk_in": 0.011943539630836048,
+        "knock_or_check_in": 0.011943539630836048,
+        "carry_to_patient": 0.011943539630836048,
+        "verify_prescription": 0.006152732537097358,
+        "hand_over": 0.009771986970684038,
+        "scan_qr": 0.009771986970684038,
+        "walk_back_to_bike": 0.002171552660152009,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.16359030039811798,
+      "algo": "reinforce",
+      "config_name": "myopic_gamma"
+    },
+    "reinforce_exp06": {
+      "episodes": 100,
+      "return_mean": -1.456533333333333,
+      "return_std": 4.385094042321099,
+      "return_sem": 0.44071853360005847,
+      "success": 0.27,
+      "minutes_mean": 49.28,
+      "outcomes": {
+        "delivered": 27,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 73,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.23335826477187735,
+        "ride_east": 0.1869857890800299,
+        "ride_south": 0.23036649214659685,
+        "ride_west": 0.0,
+        "cover_box": 0.039640987284966345,
+        "wait": 0.16903515332834704,
+        "enter_pharmacy": 0.037397157816005985,
+        "collect_order": 0.037397157816005985,
+        "park_and_walk_in": 0.012341062079281975,
+        "knock_or_check_in": 0.012341062079281975,
+        "carry_to_patient": 0.012341062079281975,
+        "verify_prescription": 0.006357516828721017,
+        "hand_over": 0.010097232610321616,
+        "scan_qr": 0.010097232610321616,
+        "walk_back_to_bike": 0.002243829468960359,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.16903515332834704,
+      "algo": "reinforce",
+      "config_name": "far_sighted_gamma"
+    },
+    "reinforce_exp07": {
+      "episodes": 100,
+      "return_mean": -1.3216666666666668,
+      "return_std": 4.368515473755867,
+      "return_sem": 0.4390523247669658,
+      "success": 0.27,
+      "minutes_mean": 49.06,
+      "outcomes": {
+        "delivered": 27,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 73,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.2557094721078248,
+        "ride_east": 0.18719580681392736,
+        "ride_south": 0.23586671658554847,
+        "ride_west": 0.0,
+        "cover_box": 0.039685511044552604,
+        "wait": 0.14077124672407337,
+        "enter_pharmacy": 0.037439161362785474,
+        "collect_order": 0.037439161362785474,
+        "park_and_walk_in": 0.012354923249719206,
+        "knock_or_check_in": 0.012354923249719206,
+        "carry_to_patient": 0.012354923249719206,
+        "verify_prescription": 0.00636465743167353,
+        "hand_over": 0.010108573567952079,
+        "scan_qr": 0.010108573567952079,
+        "walk_back_to_bike": 0.0022463496817671283,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.14077124672407337,
+      "algo": "reinforce",
+      "config_name": "no_entropy"
+    },
+    "reinforce_exp08": {
+      "episodes": 100,
+      "return_mean": -1.5815253333333334,
+      "return_std": 4.393789026293872,
+      "return_sem": 0.4415924123696294,
+      "success": 0.27,
+      "minutes_mean": 49.23,
+      "outcomes": {
+        "delivered": 27,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 73,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.21936459909228442,
+        "ride_east": 0.18910741301059,
+        "ride_south": 0.23827534039334342,
+        "ride_west": 0.0,
+        "cover_box": 0.040090771558245086,
+        "wait": 0.17095310136157338,
+        "enter_pharmacy": 0.037821482602118005,
+        "collect_order": 0.037821482602118005,
+        "park_and_walk_in": 0.012481089258698942,
+        "knock_or_check_in": 0.012481089258698942,
+        "carry_to_patient": 0.012481089258698942,
+        "verify_prescription": 0.006429652042360061,
+        "hand_over": 0.01021180030257186,
+        "scan_qr": 0.01021180030257186,
+        "walk_back_to_bike": 0.0022692889561270802,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.17095310136157338,
+      "algo": "reinforce",
+      "config_name": "high_entropy"
+    },
+    "reinforce_exp09": {
+      "episodes": 100,
+      "return_mean": 1.6959,
+      "return_std": 4.978485353219614,
+      "return_sem": 0.5003566042699827,
+      "success": 0.55,
+      "minutes_mean": 40.57,
+      "outcomes": {
+        "delivered": 55,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 45,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.22276983735830458,
+        "ride_east": 0.22572695909314933,
+        "ride_south": 0.1882700837851158,
+        "ride_west": 0.0,
+        "cover_box": 0.05717102020699852,
+        "wait": 0.020699852143913258,
+        "enter_pharmacy": 0.04928536224741252,
+        "collect_order": 0.04928536224741252,
+        "park_and_walk_in": 0.03499260719566289,
+        "knock_or_check_in": 0.03499260719566289,
+        "carry_to_patient": 0.03499260719566289,
+        "verify_prescription": 0.019714144898965006,
+        "hand_over": 0.027106949236076885,
+        "scan_qr": 0.027106949236076885,
+        "walk_back_to_bike": 0.007885657959586003,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.020699852143913258,
+      "algo": "reinforce",
+      "config_name": "short_rollout"
+    },
+    "reinforce_exp10": {
+      "episodes": 100,
+      "return_mean": -1.7009346666666665,
+      "return_std": 4.349274508308304,
+      "return_sem": 0.43711853497927616,
+      "success": 0.27,
+      "minutes_mean": 49.03,
+      "outcomes": {
+        "delivered": 27,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 73,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.265141889030072,
+        "ride_east": 0.2117746717492588,
+        "ride_south": 0.2846251588310038,
+        "ride_west": 0.0,
+        "cover_box": 0.044472681067344345,
+        "wait": 0.03473104616687844,
+        "enter_pharmacy": 0.042354934349851756,
+        "collect_order": 0.042354934349851756,
+        "park_and_walk_in": 0.01397712833545108,
+        "knock_or_check_in": 0.01397712833545108,
+        "carry_to_patient": 0.01397712833545108,
+        "verify_prescription": 0.007200338839474798,
+        "hand_over": 0.011435832274459974,
+        "scan_qr": 0.011435832274459974,
+        "walk_back_to_bike": 0.0025412960609911056,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.03473104616687844,
+      "algo": "reinforce",
+      "config_name": "wide_net_tight_clip"
+    }
+  },
+  "final": {
+    "a2c_seed0": {
+      "episodes": 100,
+      "return_mean": 5.694266666666667,
+      "return_std": 2.439869672293538,
+      "return_sem": 0.24521612849591073,
+      "success": 0.93,
+      "minutes_mean": 26.76,
+      "outcomes": {
+        "delivered": 78,
+        "returned": 15,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 7,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.08789808917197452,
+        "ride_east": 0.25477707006369427,
+        "ride_south": 0.062420382165605096,
+        "ride_west": 0.049681528662420385,
+        "cover_box": 0.07579617834394904,
+        "wait": 0.0,
+        "enter_pharmacy": 0.06369426751592357,
+        "collect_order": 0.06369426751592357,
+        "park_and_walk_in": 0.062420382165605096,
+        "knock_or_check_in": 0.062420382165605096,
+        "carry_to_patient": 0.062420382165605096,
+        "verify_prescription": 0.033121019108280254,
+        "hand_over": 0.05031847133757962,
+        "scan_qr": 0.049681528662420385,
+        "walk_back_to_bike": 0.012101910828025478,
+        "return_medicine": 0.009554140127388535
+      },
+      "wait_share": 0.0,
+      "algo": "a2c",
+      "config_name": "short_rollout"
+    },
+    "a2c_seed1": {
+      "episodes": 100,
+      "return_mean": 6.3185813333333325,
+      "return_std": 1.3449734637970452,
+      "return_sem": 0.13517491916361973,
+      "success": 0.99,
+      "minutes_mean": 24.06,
+      "outcomes": {
+        "delivered": 81,
+        "returned": 18,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 1,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.07901554404145078,
+        "ride_east": 0.25712435233160624,
+        "ride_south": 0.05310880829015544,
+        "ride_west": 0.04727979274611399,
+        "cover_box": 0.07707253886010362,
+        "wait": 0.0,
+        "enter_pharmacy": 0.06476683937823834,
+        "collect_order": 0.06476683937823834,
+        "park_and_walk_in": 0.06476683937823834,
+        "knock_or_check_in": 0.06476683937823834,
+        "carry_to_patient": 0.06476683937823834,
+        "verify_prescription": 0.03367875647668394,
+        "hand_over": 0.052461139896373056,
+        "scan_qr": 0.052461139896373056,
+        "walk_back_to_bike": 0.012305699481865285,
+        "return_medicine": 0.011658031088082901
+      },
+      "wait_share": 0.0,
+      "algo": "a2c",
+      "config_name": "short_rollout"
+    },
+    "dqn_seed0": {
+      "episodes": 100,
+      "return_mean": 6.2351453333333335,
+      "return_std": 1.1215557723242198,
+      "return_sem": 0.11272059631080922,
+      "success": 1.0,
+      "minutes_mean": 23.64,
+      "outcomes": {
+        "delivered": 81,
+        "returned": 19,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 0,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.07435197817189632,
+        "ride_east": 0.2742155525238745,
+        "ride_south": 0.04638472032742155,
+        "ride_west": 0.054570259208731244,
+        "cover_box": 0.03547066848567531,
+        "wait": 0.0020463847203274215,
+        "enter_pharmacy": 0.06821282401091405,
+        "collect_order": 0.06821282401091405,
+        "park_and_walk_in": 0.06821282401091405,
+        "knock_or_check_in": 0.06821282401091405,
+        "carry_to_patient": 0.06821282401091405,
+        "verify_prescription": 0.03547066848567531,
+        "hand_over": 0.05525238744884038,
+        "scan_qr": 0.05525238744884038,
+        "walk_back_to_bike": 0.01296043656207367,
+        "return_medicine": 0.01296043656207367
+      },
+      "wait_share": 0.0020463847203274215,
+      "algo": "dqn",
+      "config_name": "myopic_gamma"
+    },
+    "dqn_seed1": {
+      "episodes": 100,
+      "return_mean": 6.237638666666665,
+      "return_std": 1.2924134342704219,
+      "return_sem": 0.12989243743908002,
+      "success": 0.99,
+      "minutes_mean": 23.95,
+      "outcomes": {
+        "delivered": 81,
+        "returned": 18,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 1,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.06973595125253892,
+        "ride_east": 0.26878808395396075,
+        "ride_south": 0.04197698036560596,
+        "ride_west": 0.05077860528097495,
+        "cover_box": 0.043331076506431955,
+        "wait": 0.016926201760324982,
+        "enter_pharmacy": 0.06770480704129993,
+        "collect_order": 0.06770480704129993,
+        "park_and_walk_in": 0.06770480704129993,
+        "knock_or_check_in": 0.06770480704129993,
+        "carry_to_patient": 0.06770480704129993,
+        "verify_prescription": 0.035206499661475966,
+        "hand_over": 0.05484089370345294,
+        "scan_qr": 0.05484089370345294,
+        "walk_back_to_bike": 0.012863913337846988,
+        "return_medicine": 0.012186865267433988
+      },
+      "wait_share": 0.016926201760324982,
+      "algo": "dqn",
+      "config_name": "myopic_gamma"
+    },
+    "ppo_seed0": {
+      "episodes": 100,
+      "return_mean": 6.152211999999999,
+      "return_std": 1.7030698146681413,
+      "return_sem": 0.171164956576798,
+      "success": 0.98,
+      "minutes_mean": 24.67,
+      "outcomes": {
+        "delivered": 81,
+        "returned": 17,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 2,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.08532643826761474,
+        "ride_east": 0.25339366515837103,
+        "ride_south": 0.058823529411764705,
+        "ride_west": 0.04460245636716225,
+        "cover_box": 0.07627666451195864,
+        "wait": 0.0,
+        "enter_pharmacy": 0.06464124111182935,
+        "collect_order": 0.06464124111182935,
+        "park_and_walk_in": 0.06399482870071105,
+        "knock_or_check_in": 0.06399482870071105,
+        "carry_to_patient": 0.06399482870071105,
+        "verify_prescription": 0.03296703296703297,
+        "hand_over": 0.05235940530058177,
+        "scan_qr": 0.05235940530058177,
+        "walk_back_to_bike": 0.011635423400129283,
+        "return_medicine": 0.01098901098901099
+      },
+      "wait_share": 0.0,
+      "algo": "ppo",
+      "config_name": "fast_lr_short_rollout"
+    },
+    "ppo_seed1": {
+      "episodes": 100,
+      "return_mean": 6.2667666666666655,
+      "return_std": 1.5172290133295268,
+      "return_sem": 0.15248725328045973,
+      "success": 0.99,
+      "minutes_mean": 24.85,
+      "outcomes": {
+        "delivered": 81,
+        "returned": 18,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 1,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.08717948717948718,
+        "ride_east": 0.2532051282051282,
+        "ride_south": 0.060897435897435896,
+        "ride_west": 0.04487179487179487,
+        "cover_box": 0.07564102564102564,
+        "wait": 0.0,
+        "enter_pharmacy": 0.0641025641025641,
+        "collect_order": 0.0641025641025641,
+        "park_and_walk_in": 0.06346153846153846,
+        "knock_or_check_in": 0.06346153846153846,
+        "carry_to_patient": 0.06346153846153846,
+        "verify_prescription": 0.032692307692307694,
+        "hand_over": 0.051923076923076926,
+        "scan_qr": 0.051923076923076926,
+        "walk_back_to_bike": 0.011538461538461539,
+        "return_medicine": 0.011538461538461539
+      },
+      "wait_share": 0.0,
+      "algo": "ppo",
+      "config_name": "fast_lr_short_rollout"
+    },
+    "reinforce_seed0": {
+      "episodes": 100,
+      "return_mean": 0.6379666666666666,
+      "return_std": 5.3958304457135124,
+      "return_sem": 0.5423013642669049,
+      "success": 0.42,
+      "minutes_mean": 41.43,
+      "outcomes": {
+        "delivered": 42,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 58,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.2761011419249592,
+        "ride_east": 0.19168026101141925,
+        "ride_south": 0.2969004893964111,
+        "ride_west": 0.0,
+        "cover_box": 0.04404567699836868,
+        "wait": 0.0,
+        "enter_pharmacy": 0.040783034257748776,
+        "collect_order": 0.040783034257748776,
+        "park_and_walk_in": 0.020391517128874388,
+        "knock_or_check_in": 0.020391517128874388,
+        "carry_to_patient": 0.020391517128874388,
+        "verify_prescription": 0.01101141924959217,
+        "hand_over": 0.017128874388254486,
+        "scan_qr": 0.017128874388254486,
+        "walk_back_to_bike": 0.0032626427406199023,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.0,
+      "algo": "reinforce",
+      "config_name": "short_rollout"
+    },
+    "reinforce_seed1": {
+      "episodes": 100,
+      "return_mean": 4.930933333333333,
+      "return_std": 3.855347832124446,
+      "return_sem": 0.3874770362262693,
+      "success": 0.81,
+      "minutes_mean": 28.7,
+      "outcomes": {
+        "delivered": 81,
+        "returned": 0,
+        "violation": 0,
+        "ruined": 0,
+        "cancelled": 19,
+        "abandoned": 0
+      },
+      "action_share": {
+        "ride_north": 0.16058394160583941,
+        "ride_east": 0.22290847838293093,
+        "ride_south": 0.13812464907355418,
+        "ride_west": 0.0,
+        "cover_box": 0.06681639528354857,
+        "wait": 0.0,
+        "enter_pharmacy": 0.05614823133071308,
+        "collect_order": 0.05614823133071308,
+        "park_and_walk_in": 0.05614823133071308,
+        "knock_or_check_in": 0.05614823133071308,
+        "carry_to_patient": 0.05614823133071308,
+        "verify_prescription": 0.029197080291970802,
+        "hand_over": 0.045480067377877596,
+        "scan_qr": 0.045480067377877596,
+        "walk_back_to_bike": 0.010668163952835485,
+        "return_medicine": 0.0
+      },
+      "wait_share": 0.0,
+      "algo": "reinforce",
+      "config_name": "short_rollout"
+    }
+  },
+  "conditions": {
+    "random": {
+      "dry": {
+        "n": 28,
+        "success": 0.03571428571428571,
+        "return_mean": -3.859285714285714
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.013888888888888888,
+        "return_mean": -4.246527777777778
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.058823529411764705,
+        "return_mean": -3.911176470588235
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.0,
+        "return_mean": -4.255
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.020833333333333332,
+        "return_mean": -4.106875
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.030303030303030304,
+        "return_mean": -4.129090909090909
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -4.232631578947368
+      },
+      "home": {
+        "n": 39,
+        "success": 0.05128205128205128,
+        "return_mean": -3.760512820512821
+      },
+      "office": {
+        "n": 32,
+        "success": 0.0,
+        "return_mean": -4.56375
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.0,
+        "return_mean": -4.176206896551725
+      }
+    },
+    "heuristic": {
+      "dry": {
+        "n": 28,
+        "success": 1.0,
+        "return_mean": 6.482976190476191
+      },
+      "rain": {
+        "n": 72,
+        "success": 1.0,
+        "return_mean": 6.564305555555556
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 1.0,
+        "return_mean": 6.522156862745098
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 1.0,
+        "return_mean": 6.551515151515151
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.986736111111111
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 1.0,
+        "return_mean": 7.159393939393939
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 1.0,
+        "return_mean": 4.343684210526316
+      },
+      "home": {
+        "n": 39,
+        "success": 1.0,
+        "return_mean": 6.577264957264957
+      },
+      "office": {
+        "n": 32,
+        "success": 1.0,
+        "return_mean": 6.582083333333333
+      },
+      "hotel": {
+        "n": 29,
+        "success": 1.0,
+        "return_mean": 6.448735632183908
+      }
+    },
+    "dqn_exp01": {
+      "dry": {
+        "n": 28,
+        "success": 0.8928571428571429,
+        "return_mean": 5.408095238095236
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.9583333333333334,
+        "return_mean": 5.770616666666665
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.9705882352941176,
+        "return_mean": 5.76864705882353
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.9242424242424242,
+        "return_mean": 5.6178343434343425
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.651833333333332
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.9696969696969697,
+        "return_mean": 6.412820202020201
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.7368421052631579,
+        "return_mean": 1.8947368421052628
+      },
+      "home": {
+        "n": 39,
+        "success": 0.9230769230769231,
+        "return_mean": 5.509777777777777
+      },
+      "office": {
+        "n": 32,
+        "success": 0.96875,
+        "return_mean": 5.923308333333333
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.9310344827586207,
+        "return_mean": 5.602891954022987
+      }
+    },
+    "dqn_exp02": {
+      "dry": {
+        "n": 28,
+        "success": 0.9285714285714286,
+        "return_mean": 5.504404761904761
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.9583333333333334,
+        "return_mean": 5.901574074074073
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 1.0,
+        "return_mean": 6.12470588235294
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.9242424242424242,
+        "return_mean": 5.618131313131314
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.9791666666666666,
+        "return_mean": 6.418194444444445
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.9696969696969697,
+        "return_mean": 6.583737373737374
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.8421052631578947,
+        "return_mean": 2.8263157894736834
+      },
+      "home": {
+        "n": 39,
+        "success": 0.9230769230769231,
+        "return_mean": 5.436068376068376
+      },
+      "office": {
+        "n": 32,
+        "success": 0.96875,
+        "return_mean": 6.075312499999999
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.9655172413793104,
+        "return_mean": 5.952413793103448
+      }
+    },
+    "dqn_exp03": {
+      "dry": {
+        "n": 28,
+        "success": 0.8214285714285714,
+        "return_mean": 3.841904761904762
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.875,
+        "return_mean": 4.51702037037037
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.8529411764705882,
+        "return_mean": 4.269505882352941
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.8636363636363636,
+        "return_mean": 4.358115151515151
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.9375,
+        "return_mean": 4.923102777777777
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.8484848484848485,
+        "return_mean": 4.997571717171716
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.6842105263157895,
+        "return_mean": 1.6615789473684206
+      },
+      "home": {
+        "n": 39,
+        "success": 0.7435897435897436,
+        "return_mean": 2.9638427350427348
+      },
+      "office": {
+        "n": 32,
+        "success": 0.9375,
+        "return_mean": 5.364191666666667
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.9310344827586207,
+        "return_mean": 5.019131034482759
+      }
+    },
+    "dqn_exp04": {
+      "dry": {
+        "n": 28,
+        "success": 0.9642857142857143,
+        "return_mean": 5.905714285714287
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.9861111111111112,
+        "return_mean": 6.064203703703703
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 1.0,
+        "return_mean": 6.253956862745099
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.9696969696969697,
+        "return_mean": 5.899214141414141
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.552658333333333
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 1.0,
+        "return_mean": 6.621365656565657
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.8947368421052632,
+        "return_mean": 3.628947368421052
+      },
+      "home": {
+        "n": 39,
+        "success": 0.9487179487179487,
+        "return_mean": 5.625586324786325
+      },
+      "office": {
+        "n": 32,
+        "success": 1.0,
+        "return_mean": 6.227516666666666
+      },
+      "hotel": {
+        "n": 29,
+        "success": 1.0,
+        "return_mean": 6.320836781609194
+      }
+    },
+    "dqn_exp05": {
+      "dry": {
+        "n": 28,
+        "success": 0.8928571428571429,
+        "return_mean": 4.616904761904762
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.8888888888888888,
+        "return_mean": 4.624868518518518
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.9117647058823529,
+        "return_mean": 4.695490196078431
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.8787878787878788,
+        "return_mean": 4.585109090909089
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.9583333333333334,
+        "return_mean": 5.312094444444444
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.8484848484848485,
+        "return_mean": 4.894040404040404
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.7894736842105263,
+        "return_mean": 2.409473684210526
+      },
+      "home": {
+        "n": 39,
+        "success": 0.8205128205128205,
+        "return_mean": 4.117521367521367
+      },
+      "office": {
+        "n": 32,
+        "success": 0.9375,
+        "return_mean": 4.706458333333333
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.9310344827586207,
+        "return_mean": 5.209443678160919
+      }
+    },
+    "dqn_exp06": {
+      "dry": {
+        "n": 28,
+        "success": 0.8928571428571429,
+        "return_mean": 5.306904761904761
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.9722222222222222,
+        "return_mean": 5.938812962962963
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.9705882352941176,
+        "return_mean": 5.876678431372548
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.9393939393939394,
+        "return_mean": 5.702739393939393
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.416558333333334
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 1.0,
+        "return_mean": 6.798577777777777
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.7368421052631579,
+        "return_mean": 2.3073684210526313
+      },
+      "home": {
+        "n": 39,
+        "success": 0.9743589743589743,
+        "return_mean": 5.964615384615384
+      },
+      "office": {
+        "n": 32,
+        "success": 0.96875,
+        "return_mean": 5.9751125
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.896551724137931,
+        "return_mean": 5.253940229885058
+      }
+    },
+    "dqn_exp07": {
+      "dry": {
+        "n": 28,
+        "success": 0.8214285714285714,
+        "return_mean": 4.660833333333334
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.8472222222222222,
+        "return_mean": 5.229166666666666
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.8529411764705882,
+        "return_mean": 5.3269843137254895
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.8333333333333334,
+        "return_mean": 4.937664646464645
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.563080555555556
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 1.0,
+        "return_mean": 6.69410505050505
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.15789473684210525,
+        "return_mean": -1.5226315789473688
+      },
+      "home": {
+        "n": 39,
+        "success": 0.8205128205128205,
+        "return_mean": 4.687435897435897
+      },
+      "office": {
+        "n": 32,
+        "success": 0.875,
+        "return_mean": 5.4784875
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.8275862068965517,
+        "return_mean": 5.133852873563218
+      }
+    },
+    "dqn_exp08": {
+      "dry": {
+        "n": 28,
+        "success": 0.9285714285714286,
+        "return_mean": 5.241309523809524
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.9722222222222222,
+        "return_mean": 5.741301851851852
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 1.0,
+        "return_mean": 6.128996078431372
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.9393939393939394,
+        "return_mean": 5.329462626262625
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.9791666666666666,
+        "return_mean": 6.0032805555555555
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.9696969696969697,
+        "return_mean": 6.327361616161616
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.8947368421052632,
+        "return_mean": 3.3247368421052634
+      },
+      "home": {
+        "n": 39,
+        "success": 0.8974358974358975,
+        "return_mean": 4.665979487179485
+      },
+      "office": {
+        "n": 32,
+        "success": 1.0,
+        "return_mean": 6.267079166666667
+      },
+      "hotel": {
+        "n": 29,
+        "success": 1.0,
+        "return_mean": 6.124505747126436
+      }
+    },
+    "dqn_exp09": {
+      "dry": {
+        "n": 28,
+        "success": 1.0,
+        "return_mean": 6.068809523809523
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.9861111111111112,
+        "return_mean": 5.8706851851851845
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.9705882352941176,
+        "return_mean": 5.633039215686274
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 1.0,
+        "return_mean": 6.077161616161615
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.491027777777778
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.9696969696969697,
+        "return_mean": 6.1632323232323225
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 1.0,
+        "return_mean": 4.0873684210526315
+      },
+      "home": {
+        "n": 39,
+        "success": 1.0,
+        "return_mean": 5.947128205128204
+      },
+      "office": {
+        "n": 32,
+        "success": 0.96875,
+        "return_mean": 5.807083333333333
+      },
+      "hotel": {
+        "n": 29,
+        "success": 1.0,
+        "return_mean": 6.029356321839081
+      }
+    },
+    "dqn_exp10": {
+      "dry": {
+        "n": 28,
+        "success": 0.8571428571428571,
+        "return_mean": 4.7560714285714285
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.7638888888888888,
+        "return_mean": 3.9030462962962957
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.8235294117647058,
+        "return_mean": 4.51561568627451
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.7727272727272727,
+        "return_mean": 3.9493696969696956
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.9791666666666666,
+        "return_mean": 6.08971111111111
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.696969696969697,
+        "return_mean": 3.5940363636363633
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.47368421052631576,
+        "return_mean": 0.17263157894736844
+      },
+      "home": {
+        "n": 39,
+        "success": 0.8461538461538461,
+        "return_mean": 4.6579418803418795
+      },
+      "office": {
+        "n": 32,
+        "success": 0.6875,
+        "return_mean": 2.9811124999999996
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.8275862068965517,
+        "return_mean": 4.728758620689654
+      }
+    },
+    "a2c_exp01": {
+      "dry": {
+        "n": 28,
+        "success": 0.32142857142857145,
+        "return_mean": -0.7776190476190478
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.25,
+        "return_mean": -1.4868055555555555
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.29411764705882354,
+        "return_mean": -0.7350980392156866
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.25757575757575757,
+        "return_mean": -1.5731818181818185
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.3333333333333333,
+        "return_mean": -0.8032638888888891
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.3333333333333333,
+        "return_mean": -0.6683838383838385
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.59
+      },
+      "home": {
+        "n": 39,
+        "success": 0.46153846153846156,
+        "return_mean": 0.5731623931623931
+      },
+      "office": {
+        "n": 32,
+        "success": 0.0,
+        "return_mean": -4.0928125
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.3103448275862069,
+        "return_mean": -0.6967816091954024
+      }
+    },
+    "a2c_exp02": {
+      "dry": {
+        "n": 28,
+        "success": 0.2857142857142857,
+        "return_mean": -0.8469047619047624
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.25,
+        "return_mean": -1.5891962962962962
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.20588235294117646,
+        "return_mean": -1.9792862745098034
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.2878787878787879,
+        "return_mean": -1.0733292929292932
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.3125,
+        "return_mean": -0.7887444444444448
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.3333333333333333,
+        "return_mean": -0.796537373737374
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.89421052631579
+      },
+      "home": {
+        "n": 39,
+        "success": 0.358974358974359,
+        "return_mean": -0.19202051282051327
+      },
+      "office": {
+        "n": 32,
+        "success": 0.375,
+        "return_mean": -0.4505208333333336
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.0,
+        "return_mean": -4.007931034482759
+      }
+    },
+    "a2c_exp03": {
+      "dry": {
+        "n": 28,
+        "success": 0.7857142857142857,
+        "return_mean": 4.592380952380951
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.8194444444444444,
+        "return_mean": 5.058209259259259
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.8235294117647058,
+        "return_mean": 4.9805882352941175
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.803030303030303,
+        "return_mean": 4.900571717171716
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.768888888888889
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 1.0,
+        "return_mean": 6.903668686868687
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.155263157894737
+      },
+      "home": {
+        "n": 39,
+        "success": 0.8205128205128205,
+        "return_mean": 4.87071111111111
+      },
+      "office": {
+        "n": 32,
+        "success": 0.84375,
+        "return_mean": 5.325729166666666
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.7586206896551724,
+        "return_mean": 4.565402298850574
+      }
+    },
+    "a2c_exp04": {
+      "dry": {
+        "n": 28,
+        "success": 0.5,
+        "return_mean": 1.1453571428571425
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.3611111111111111,
+        "return_mean": -0.33939814814814834
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.4117647058823529,
+        "return_mean": 0.4331372549019607
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.3939393939393939,
+        "return_mean": -0.10747474747474749
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.4791666666666667,
+        "return_mean": 0.7609722222222222
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.5151515151515151,
+        "return_mean": 1.1741414141414137
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.56
+      },
+      "home": {
+        "n": 39,
+        "success": 0.6923076923076923,
+        "return_mean": 3.120256410256411
+      },
+      "office": {
+        "n": 32,
+        "success": 0.3125,
+        "return_mean": -0.9521875000000002
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.10344827586206896,
+        "return_mean": -2.882298850574713
+      }
+    },
+    "a2c_exp05": {
+      "dry": {
+        "n": 28,
+        "success": 0.32142857142857145,
+        "return_mean": -0.7733333333333334
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.25,
+        "return_mean": -1.4097222222222223
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.29411764705882354,
+        "return_mean": -0.7145098039215689
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.25757575757575757,
+        "return_mean": -1.497878787878788
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.3333333333333333,
+        "return_mean": -0.742638888888889
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.3333333333333333,
+        "return_mean": -0.5923232323232324
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.5768421052631583
+      },
+      "home": {
+        "n": 39,
+        "success": 0.46153846153846156,
+        "return_mean": 0.6085470085470086
+      },
+      "office": {
+        "n": 32,
+        "success": 0.0,
+        "return_mean": -3.975625
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.3103448275862069,
+        "return_mean": -0.6781609195402302
+      }
+    },
+    "a2c_exp06": {
+      "dry": {
+        "n": 28,
+        "success": 0.32142857142857145,
+        "return_mean": -0.9076190476190477
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.3333333333333333,
+        "return_mean": -1.2348907407407408
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.3235294117647059,
+        "return_mean": -0.9225254901960787
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.3333333333333333,
+        "return_mean": -1.2569636363636367
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.375,
+        "return_mean": -0.8411638888888892
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.45454545454545453,
+        "return_mean": 0.08364848484848465
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -4.037368421052632
+      },
+      "home": {
+        "n": 39,
+        "success": 0.46153846153846156,
+        "return_mean": 0.08782564102564108
+      },
+      "office": {
+        "n": 32,
+        "success": 0.1875,
+        "return_mean": -2.549916666666667
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.3103448275862069,
+        "return_mean": -1.2466666666666668
+      }
+    },
+    "a2c_exp07": {
+      "dry": {
+        "n": 28,
+        "success": 0.7142857142857143,
+        "return_mean": 3.080238095238095
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.5,
+        "return_mean": 1.0577777777777775
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.5882352941176471,
+        "return_mean": 2.427254901960784
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.5454545454545454,
+        "return_mean": 1.21030303030303
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.7083333333333334,
+        "return_mean": 2.8787499999999997
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.6666666666666666,
+        "return_mean": 2.6844444444444444
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.3873684210526314
+      },
+      "home": {
+        "n": 39,
+        "success": 0.7948717948717948,
+        "return_mean": 4.024529914529914
+      },
+      "office": {
+        "n": 32,
+        "success": 0.375,
+        "return_mean": -0.49625000000000014
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.4482758620689655,
+        "return_mean": 0.7355172413793101
+      }
+    },
+    "a2c_exp08": {
+      "dry": {
+        "n": 28,
+        "success": 0.32142857142857145,
+        "return_mean": -0.7733333333333334
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.25,
+        "return_mean": -1.5050000000000001
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.29411764705882354,
+        "return_mean": -0.7630392156862745
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.25757575757575757,
+        "return_mean": -1.5768181818181823
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.3333333333333333,
+        "return_mean": -0.8555555555555556
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.3333333333333333,
+        "return_mean": -0.6102020202020202
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.621578947368421
+      },
+      "home": {
+        "n": 39,
+        "success": 0.46153846153846156,
+        "return_mean": 0.5544444444444442
+      },
+      "office": {
+        "n": 32,
+        "success": 0.0,
+        "return_mean": -4.0028125
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.3103448275862069,
+        "return_mean": -0.811954022988506
+      }
+    },
+    "a2c_exp09": {
+      "dry": {
+        "n": 28,
+        "success": 0.9642857142857143,
+        "return_mean": 5.669761904761904
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.9722222222222222,
+        "return_mean": 6.062962962962962
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 1.0,
+        "return_mean": 6.327549019607844
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.9545454545454546,
+        "return_mean": 5.759848484848485
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.449305555555557
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 1.0,
+        "return_mean": 6.772727272727273
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.8421052631578947,
+        "return_mean": 3.2747368421052627
+      },
+      "home": {
+        "n": 39,
+        "success": 0.9487179487179487,
+        "return_mean": 5.605384615384614
+      },
+      "office": {
+        "n": 32,
+        "success": 1.0,
+        "return_mean": 6.438854166666666
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.9655172413793104,
+        "return_mean": 5.8839080459770114
+      }
+    },
+    "a2c_exp10": {
+      "dry": {
+        "n": 28,
+        "success": 0.2857142857142857,
+        "return_mean": -1.2098809523809524
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.25,
+        "return_mean": -2.019764814814815
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.2647058823529412,
+        "return_mean": -1.496756862745098
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.25757575757575757,
+        "return_mean": -1.9456060606060606
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.3125,
+        "return_mean": -1.391147222222222
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.3333333333333333,
+        "return_mean": -1.137111111111111
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.9473684210526314
+      },
+      "home": {
+        "n": 39,
+        "success": 0.46153846153846156,
+        "return_mean": 0.207442735042735
+      },
+      "office": {
+        "n": 32,
+        "success": 0.0,
+        "return_mean": -4.418749999999999
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.27586206896551724,
+        "return_mean": -1.5858620689655174
+      }
+    },
+    "ppo_exp01": {
+      "dry": {
+        "n": 28,
+        "success": 0.7857142857142857,
+        "return_mean": 4.496071428571428
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.8333333333333334,
+        "return_mean": 4.908888888888888
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.8235294117647058,
+        "return_mean": 5.086176470588235
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.8181818181818182,
+        "return_mean": 4.642424242424242
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.459305555555555
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 1.0,
+        "return_mean": 6.643737373737374
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.05263157894736842,
+        "return_mean": -2.629473684210527
+      },
+      "home": {
+        "n": 39,
+        "success": 0.8205128205128205,
+        "return_mean": 4.726324786324785
+      },
+      "office": {
+        "n": 32,
+        "success": 0.84375,
+        "return_mean": 5.086666666666666
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.7931034482758621,
+        "return_mean": 4.559655172413793
+      }
+    },
+    "ppo_exp02": {
+      "dry": {
+        "n": 28,
+        "success": 0.9285714285714286,
+        "return_mean": 5.369523809523808
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.9722222222222222,
+        "return_mean": 5.904768518518519
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 1.0,
+        "return_mean": 6.260784313725489
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.9393939393939394,
+        "return_mean": 5.494292929292929
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.316944444444445
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 1.0,
+        "return_mean": 6.656262626262626
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.7894736842105263,
+        "return_mean": 2.7694736842105265
+      },
+      "home": {
+        "n": 39,
+        "success": 0.9743589743589743,
+        "return_mean": 5.815811965811965
+      },
+      "office": {
+        "n": 32,
+        "success": 1.0,
+        "return_mean": 6.202604166666667
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.896551724137931,
+        "return_mean": 5.17896551724138
+      }
+    },
+    "ppo_exp03": {
+      "dry": {
+        "n": 28,
+        "success": 0.9285714285714286,
+        "return_mean": 5.471428571428571
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.9305555555555556,
+        "return_mean": 5.682777777777777
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.9705882352941176,
+        "return_mean": 6.06578431372549
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.9090909090909091,
+        "return_mean": 5.395808080808081
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.444999999999999
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 1.0,
+        "return_mean": 6.696969696969697
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.631578947368421,
+        "return_mean": 1.6842105263157894
+      },
+      "home": {
+        "n": 39,
+        "success": 0.9743589743589743,
+        "return_mean": 6.070170940170939
+      },
+      "office": {
+        "n": 32,
+        "success": 0.9375,
+        "return_mean": 5.659479166666666
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.8620689655172413,
+        "return_mean": 4.983448275862069
+      }
+    },
+    "ppo_exp04": {
+      "dry": {
+        "n": 28,
+        "success": 0.7857142857142857,
+        "return_mean": 4.449761904761905
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.8194444444444444,
+        "return_mean": 4.82324074074074
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.8235294117647058,
+        "return_mean": 5.052352941176471
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.803030303030303,
+        "return_mean": 4.546767676767676
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.507013888888888
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 1.0,
+        "return_mean": 6.611818181818181
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.087368421052632
+      },
+      "home": {
+        "n": 39,
+        "success": 0.8205128205128205,
+        "return_mean": 4.602307692307691
+      },
+      "office": {
+        "n": 32,
+        "success": 0.84375,
+        "return_mean": 5.113958333333334
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.7586206896551724,
+        "return_mean": 4.438965517241379
+      }
+    },
+    "ppo_exp05": {
+      "dry": {
+        "n": 28,
+        "success": 0.8928571428571429,
+        "return_mean": 4.996428571428572
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.9444444444444444,
+        "return_mean": 5.612025925925926
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 1.0,
+        "return_mean": 6.24092156862745
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.8939393939393939,
+        "return_mean": 5.026886868686868
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.9791666666666666,
+        "return_mean": 6.060352777777777
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 1.0,
+        "return_mean": 6.4560282828282824
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.6842105263157895,
+        "return_mean": 2.106315789473684
+      },
+      "home": {
+        "n": 39,
+        "success": 0.9487179487179487,
+        "return_mean": 5.568266666666666
+      },
+      "office": {
+        "n": 32,
+        "success": 1.0,
+        "return_mean": 6.044195833333333
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.8275862068965517,
+        "return_mean": 4.599627586206897
+      }
+    },
+    "ppo_exp06": {
+      "dry": {
+        "n": 28,
+        "success": 0.9642857142857143,
+        "return_mean": 5.7509523809523815
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.9861111111111112,
+        "return_mean": 6.167685185185184
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 1.0,
+        "return_mean": 6.29735294117647
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.9696969696969697,
+        "return_mean": 5.924090909090908
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.547708333333333
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 1.0,
+        "return_mean": 6.823030303030303
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.8947368421052632,
+        "return_mean": 3.4552631578947364
+      },
+      "home": {
+        "n": 39,
+        "success": 0.9487179487179487,
+        "return_mean": 5.576923076923077
+      },
+      "office": {
+        "n": 32,
+        "success": 1.0,
+        "return_mean": 6.396979166666666
+      },
+      "hotel": {
+        "n": 29,
+        "success": 1.0,
+        "return_mean": 6.306781609195402
+      }
+    },
+    "ppo_exp07": {
+      "dry": {
+        "n": 28,
+        "success": 0.6785714285714286,
+        "return_mean": 3.0433333333333334
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.6388888888888888,
+        "return_mean": 2.774259259259259
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.6176470588235294,
+        "return_mean": 2.767549019607843
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.6666666666666666,
+        "return_mean": 2.8918686868686865
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.7083333333333334,
+        "return_mean": 3.170347222222222
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.9393939393939394,
+        "return_mean": 5.854040404040404
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.178947368421053
+      },
+      "home": {
+        "n": 39,
+        "success": 0.7435897435897436,
+        "return_mean": 3.7616239316239306
+      },
+      "office": {
+        "n": 32,
+        "success": 0.65625,
+        "return_mean": 2.9480208333333335
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.5172413793103449,
+        "return_mean": 1.5144827586206895
+      }
+    },
+    "ppo_exp08": {
+      "dry": {
+        "n": 28,
+        "success": 0.32142857142857145,
+        "return_mean": -0.9008333333333335
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.25,
+        "return_mean": -1.760138888888889
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.29411764705882354,
+        "return_mean": -1.067450980392157
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.25757575757575757,
+        "return_mean": -1.7524242424242429
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.3333333333333333,
+        "return_mean": -0.9803472222222224
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.3333333333333333,
+        "return_mean": -0.8941414141414141
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.9678947368421063
+      },
+      "home": {
+        "n": 39,
+        "success": 0.46153846153846156,
+        "return_mean": 0.3775213675213675
+      },
+      "office": {
+        "n": 32,
+        "success": 0.0,
+        "return_mean": -4.2359375
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.3103448275862069,
+        "return_mean": -1.0733333333333335
+      }
+    },
+    "ppo_exp09": {
+      "dry": {
+        "n": 28,
+        "success": 0.9642857142857143,
+        "return_mean": 5.722380952380952
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.9583333333333334,
+        "return_mean": 6.019322222222223
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 1.0,
+        "return_mean": 6.3196078431372555
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.9393939393939394,
+        "return_mean": 5.738654545454544
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.57815
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 1.0,
+        "return_mean": 6.855959595959595
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.7894736842105263,
+        "return_mean": 2.716842105263158
+      },
+      "home": {
+        "n": 39,
+        "success": 0.9230769230769231,
+        "return_mean": 5.428376068376068
+      },
+      "office": {
+        "n": 32,
+        "success": 1.0,
+        "return_mean": 6.447291666666667
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.9655172413793104,
+        "return_mean": 6.055098850574712
+      }
+    },
+    "ppo_exp10": {
+      "dry": {
+        "n": 28,
+        "success": 0.8928571428571429,
+        "return_mean": 5.012738095238094
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.9722222222222222,
+        "return_mean": 6.064074074074075
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 1.0,
+        "return_mean": 6.191470588235295
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.9242424242424242,
+        "return_mean": 5.552424242424241
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.654166666666666
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.9393939393939394,
+        "return_mean": 6.172424242424243
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.8421052631578947,
+        "return_mean": 2.83578947368421
+      },
+      "home": {
+        "n": 39,
+        "success": 0.8717948717948718,
+        "return_mean": 4.8194871794871785
+      },
+      "office": {
+        "n": 32,
+        "success": 1.0,
+        "return_mean": 6.456979166666667
+      },
+      "hotel": {
+        "n": 29,
+        "success": 1.0,
+        "return_mean": 6.2891954022988505
+      }
+    },
+    "reinforce_exp01": {
+      "dry": {
+        "n": 28,
+        "success": 0.21428571428571427,
+        "return_mean": -1.8384523809523814
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.20833333333333334,
+        "return_mean": -2.267125925925926
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.2647058823529412,
+        "return_mean": -1.417345098039216
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.18181818181818182,
+        "return_mean": -2.5230303030303034
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.25,
+        "return_mean": -1.8011472222222225
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.2727272727272727,
+        "return_mean": -1.58559595959596
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.9963157894736847
+      },
+      "home": {
+        "n": 39,
+        "success": 0.46153846153846156,
+        "return_mean": 0.3228273504273503
+      },
+      "office": {
+        "n": 32,
+        "success": 0.0,
+        "return_mean": -4.385937500000001
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.10344827586206896,
+        "return_mean": -2.9982758620689656
+      }
+    },
+    "reinforce_exp02": {
+      "dry": {
+        "n": 28,
+        "success": 0.32142857142857145,
+        "return_mean": -0.9019047619047621
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.25,
+        "return_mean": -1.7913888888888891
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.29411764705882354,
+        "return_mean": -1.0727450980392157
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.25757575757575757,
+        "return_mean": -1.7842424242424242
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.3333333333333333,
+        "return_mean": -1.0328472222222222
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.3333333333333333,
+        "return_mean": -0.886868686868687
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.9678947368421063
+      },
+      "home": {
+        "n": 39,
+        "success": 0.46153846153846156,
+        "return_mean": 0.35982905982905977
+      },
+      "office": {
+        "n": 32,
+        "success": 0.0,
+        "return_mean": -4.2846875
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.3103448275862069,
+        "return_mean": -1.0743678160919543
+      }
+    },
+    "reinforce_exp03": {
+      "dry": {
+        "n": 28,
+        "success": 0.25,
+        "return_mean": -1.206666666666667
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.25,
+        "return_mean": -1.6841037037037039
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.20588235294117646,
+        "return_mean": -2.0363450980392157
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.2727272727272727,
+        "return_mean": -1.3000969696969698
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.3125,
+        "return_mean": -0.9092305555555557
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.30303030303030304,
+        "return_mean": -1.1436080808080809
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.8768421052631585
+      },
+      "home": {
+        "n": 39,
+        "success": 0.358974358974359,
+        "return_mean": -0.2867213675213677
+      },
+      "office": {
+        "n": 32,
+        "success": 0.34375,
+        "return_mean": -0.8159375000000001
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.0,
+        "return_mean": -4.060344827586207
+      }
+    },
+    "reinforce_exp04": {
+      "dry": {
+        "n": 28,
+        "success": 0.39285714285714285,
+        "return_mean": 0.3682142857142856
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.4166666666666667,
+        "return_mean": 0.114074074074074
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.4117647058823529,
+        "return_mean": 0.11206666666666643
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.4090909090909091,
+        "return_mean": 0.22292525252525253
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.4583333333333333,
+        "return_mean": 0.6572749999999999
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.5757575757575758,
+        "return_mean": 1.8177010101010103
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.8426315789473686
+      },
+      "home": {
+        "n": 39,
+        "success": 0.4358974358974359,
+        "return_mean": 0.38930940170940176
+      },
+      "office": {
+        "n": 32,
+        "success": 0.46875,
+        "return_mean": 0.7789666666666665
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.3103448275862069,
+        "return_mean": -0.744367816091954
+      }
+    },
+    "reinforce_exp05": {
+      "dry": {
+        "n": 28,
+        "success": 0.32142857142857145,
+        "return_mean": -0.7690476190476192
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.25,
+        "return_mean": -1.6447222222222224
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.29411764705882354,
+        "return_mean": -0.8892156862745101
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.25757575757575757,
+        "return_mean": -1.6624242424242428
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.3333333333333333,
+        "return_mean": -0.9040972222222224
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.3333333333333333,
+        "return_mean": -0.7732323232323234
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.7389473684210537
+      },
+      "home": {
+        "n": 39,
+        "success": 0.46153846153846156,
+        "return_mean": 0.5221367521367521
+      },
+      "office": {
+        "n": 32,
+        "success": 0.0,
+        "return_mean": -4.1084375
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.3103448275862069,
+        "return_mean": -0.994712643678161
+      }
+    },
+    "reinforce_exp06": {
+      "dry": {
+        "n": 28,
+        "success": 0.32142857142857145,
+        "return_mean": -0.8258333333333335
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.25,
+        "return_mean": -1.7018055555555558
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.29411764705882354,
+        "return_mean": -0.947450980392157
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.25757575757575757,
+        "return_mean": -1.7187878787878788
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.3333333333333333,
+        "return_mean": -0.9297222222222222
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.3333333333333333,
+        "return_mean": -0.8486868686868689
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.8431578947368434
+      },
+      "home": {
+        "n": 39,
+        "success": 0.46153846153846156,
+        "return_mean": 0.5082905982905983
+      },
+      "office": {
+        "n": 32,
+        "success": 0.0,
+        "return_mean": -4.2631250000000005
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.3103448275862069,
+        "return_mean": -1.001954022988506
+      }
+    },
+    "reinforce_exp07": {
+      "dry": {
+        "n": 28,
+        "success": 0.32142857142857145,
+        "return_mean": -0.7733333333333334
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.25,
+        "return_mean": -1.5349074074074076
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.29411764705882354,
+        "return_mean": -0.8137254901960788
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.25757575757575757,
+        "return_mean": -1.5833333333333335
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.3333333333333333,
+        "return_mean": -0.8670138888888891
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.3333333333333333,
+        "return_mean": -0.6403030303030304
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.653684210526316
+      },
+      "home": {
+        "n": 39,
+        "success": 0.46153846153846156,
+        "return_mean": 0.5634188034188033
+      },
+      "office": {
+        "n": 32,
+        "success": 0.0,
+        "return_mean": -4.071875
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.3103448275862069,
+        "return_mean": -0.8220689655172414
+      }
+    },
+    "reinforce_exp08": {
+      "dry": {
+        "n": 28,
+        "success": 0.32142857142857145,
+        "return_mean": -0.9019047619047621
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.25,
+        "return_mean": -1.8458222222222223
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.29411764705882354,
+        "return_mean": -1.1368392156862746
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.25757575757575757,
+        "return_mean": -1.8106060606060606
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.3333333333333333,
+        "return_mean": -1.0733694444444446
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.3333333333333333,
+        "return_mean": -0.939418181818182
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.980526315789475
+      },
+      "home": {
+        "n": 39,
+        "success": 0.46153846153846156,
+        "return_mean": 0.28933675213675203
+      },
+      "office": {
+        "n": 32,
+        "success": 0.0,
+        "return_mean": -4.300625
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.3103448275862069,
+        "return_mean": -1.0971264367816096
+      }
+    },
+    "reinforce_exp09": {
+      "dry": {
+        "n": 28,
+        "success": 0.5,
+        "return_mean": 1.0298809523809525
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.5694444444444444,
+        "return_mean": 1.9549074074074069
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.5588235294117647,
+        "return_mean": 2.1280392156862744
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.5454545454545454,
+        "return_mean": 1.4732828282828283
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.6458333333333334,
+        "return_mean": 2.4568749999999997
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.7272727272727273,
+        "return_mean": 3.477575757575757
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.3210526315789473
+      },
+      "home": {
+        "n": 39,
+        "success": 0.8205128205128205,
+        "return_mean": 4.536581196581197
+      },
+      "office": {
+        "n": 32,
+        "success": 0.21875,
+        "return_mean": -1.8009374999999999
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.5517241379310345,
+        "return_mean": 1.7342528735632181
+      }
+    },
+    "reinforce_exp10": {
+      "dry": {
+        "n": 28,
+        "success": 0.32142857142857145,
+        "return_mean": -0.9276190476190477
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.25,
+        "return_mean": -2.001668518518519
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.29411764705882354,
+        "return_mean": -1.2474549019607843
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.25757575757575757,
+        "return_mean": -1.9345454545454543
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.3333333333333333,
+        "return_mean": -1.191911111111111
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.3333333333333333,
+        "return_mean": -1.1115676767676765
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -4.010526315789473
+      },
+      "home": {
+        "n": 39,
+        "success": 0.46153846153846156,
+        "return_mean": 0.11583589743589752
+      },
+      "office": {
+        "n": 32,
+        "success": 0.0,
+        "return_mean": -4.4125
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.3103448275862069,
+        "return_mean": -1.1521057471264367
+      }
+    },
+    "a2c_seed0": {
+      "dry": {
+        "n": 28,
+        "success": 0.8928571428571429,
+        "return_mean": 5.194642857142857
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.9444444444444444,
+        "return_mean": 5.888564814814815
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.9705882352941176,
+        "return_mean": 6.1247058823529406
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.9090909090909091,
+        "return_mean": 5.472525252525252
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.9583333333333334,
+        "return_mean": 6.185763888888889
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.9696969696969697,
+        "return_mean": 6.58090909090909
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.7894736842105263,
+        "return_mean": 2.912631578947368
+      },
+      "home": {
+        "n": 39,
+        "success": 0.8717948717948718,
+        "return_mean": 4.9577777777777765
+      },
+      "office": {
+        "n": 32,
+        "success": 1.0,
+        "return_mean": 6.441875
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.9310344827586207,
+        "return_mean": 5.859770114942528
+      }
+    },
+    "a2c_seed1": {
+      "dry": {
+        "n": 28,
+        "success": 0.9642857142857143,
+        "return_mean": 6.015119047619047
+      },
+      "rain": {
+        "n": 72,
+        "success": 1.0,
+        "return_mean": 6.436594444444444
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 1.0,
+        "return_mean": 6.328627450980392
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.9848484848484849,
+        "return_mean": 6.3134060606060585
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.824372222222223
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 1.0,
+        "return_mean": 6.9738868686868685
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.9473684210526315,
+        "return_mean": 3.902631578947368
+      },
+      "home": {
+        "n": 39,
+        "success": 1.0,
+        "return_mean": 6.383388034188033
+      },
+      "office": {
+        "n": 32,
+        "success": 1.0,
+        "return_mean": 6.452933333333333
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.9655172413793104,
+        "return_mean": 6.083177011494252
+      }
+    },
+    "dqn_seed0": {
+      "dry": {
+        "n": 28,
+        "success": 1.0,
+        "return_mean": 6.332261904761903
+      },
+      "rain": {
+        "n": 72,
+        "success": 1.0,
+        "return_mean": 6.197377777777778
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 1.0,
+        "return_mean": 6.267227450980391
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 1.0,
+        "return_mean": 6.218618181818181
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.65056388888889
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 1.0,
+        "return_mean": 6.821741414141414
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 1.0,
+        "return_mean": 4.166842105263158
+      },
+      "home": {
+        "n": 39,
+        "success": 1.0,
+        "return_mean": 6.208858119658118
+      },
+      "office": {
+        "n": 32,
+        "success": 1.0,
+        "return_mean": 6.232758333333333
+      },
+      "hotel": {
+        "n": 29,
+        "success": 1.0,
+        "return_mean": 6.273131034482759
+      }
+    },
+    "dqn_seed1": {
+      "dry": {
+        "n": 28,
+        "success": 1.0,
+        "return_mean": 6.287738095238095
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.9861111111111112,
+        "return_mean": 6.218155555555555
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 1.0,
+        "return_mean": 6.359407843137255
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.9848484848484849,
+        "return_mean": 6.174909090909091
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.6597277777777775
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 1.0,
+        "return_mean": 6.95960404040404
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.9473684210526315,
+        "return_mean": 3.917368421052631
+      },
+      "home": {
+        "n": 39,
+        "success": 0.9743589743589743,
+        "return_mean": 6.159388034188033
+      },
+      "office": {
+        "n": 32,
+        "success": 1.0,
+        "return_mean": 6.3474125
+      },
+      "hotel": {
+        "n": 29,
+        "success": 1.0,
+        "return_mean": 6.221742528735632
+      }
+    },
+    "ppo_seed0": {
+      "dry": {
+        "n": 28,
+        "success": 0.9642857142857143,
+        "return_mean": 5.865476190476189
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.9861111111111112,
+        "return_mean": 6.26372037037037
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 1.0,
+        "return_mean": 6.313243137254902
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.9696969696969697,
+        "return_mean": 6.069256565656565
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.679302777777778
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 1.0,
+        "return_mean": 6.937414141414141
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.8947368421052632,
+        "return_mean": 3.4568421052631577
+      },
+      "home": {
+        "n": 39,
+        "success": 0.9487179487179487,
+        "return_mean": 5.780830769230768
+      },
+      "office": {
+        "n": 32,
+        "success": 1.0,
+        "return_mean": 6.456979166666667
+      },
+      "hotel": {
+        "n": 29,
+        "success": 1.0,
+        "return_mean": 6.31536091954023
+      }
+    },
+    "ppo_seed1": {
+      "dry": {
+        "n": 28,
+        "success": 0.9642857142857143,
+        "return_mean": 5.923095238095237
+      },
+      "rain": {
+        "n": 72,
+        "success": 1.0,
+        "return_mean": 6.4004166666666675
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 1.0,
+        "return_mean": 6.290588235294116
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.9848484848484849,
+        "return_mean": 6.2544949494949496
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.799791666666667
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 1.0,
+        "return_mean": 6.978080808080807
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.9473684210526315,
+        "return_mean": 3.684736842105263
+      },
+      "home": {
+        "n": 39,
+        "success": 0.9743589743589743,
+        "return_mean": 6.1179487179487175
+      },
+      "office": {
+        "n": 32,
+        "success": 1.0,
+        "return_mean": 6.441458333333333
+      },
+      "hotel": {
+        "n": 29,
+        "success": 1.0,
+        "return_mean": 6.274137931034483
+      }
+    },
+    "reinforce_seed0": {
+      "dry": {
+        "n": 28,
+        "success": 0.39285714285714285,
+        "return_mean": 0.3939285714285713
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.4305555555555556,
+        "return_mean": 0.7328703703703702
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.4117647058823529,
+        "return_mean": 0.47686274509803905
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.42424242424242425,
+        "return_mean": 0.7209595959595959
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 0.4791666666666667,
+        "return_mean": 1.2063194444444443
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 0.5757575757575758,
+        "return_mean": 2.284343434343434
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -3.6573684210526314
+      },
+      "home": {
+        "n": 39,
+        "success": 0.46153846153846156,
+        "return_mean": 0.9386324786324786
+      },
+      "office": {
+        "n": 32,
+        "success": 0.46875,
+        "return_mean": 1.141458333333333
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.3103448275862069,
+        "return_mean": -0.32195402298850595
+      }
+    },
+    "reinforce_seed1": {
+      "dry": {
+        "n": 28,
+        "success": 0.7857142857142857,
+        "return_mean": 4.5844047619047625
+      },
+      "rain": {
+        "n": 72,
+        "success": 0.8194444444444444,
+        "return_mean": 5.065694444444444
+      },
+      "normal traffic": {
+        "n": 34,
+        "success": 0.8235294117647058,
+        "return_mean": 5.108235294117646
+      },
+      "rush hour": {
+        "n": 66,
+        "success": 0.803030303030303,
+        "return_mean": 4.839595959595958
+      },
+      "no prescription": {
+        "n": 48,
+        "success": 1.0,
+        "return_mean": 6.626388888888887
+      },
+      "valid prescription": {
+        "n": 33,
+        "success": 1.0,
+        "return_mean": 7.015959595959596
+      },
+      "invalid prescription": {
+        "n": 19,
+        "success": 0.0,
+        "return_mean": -2.9736842105263164
+      },
+      "home": {
+        "n": 39,
+        "success": 0.8205128205128205,
+        "return_mean": 4.8531623931623935
+      },
+      "office": {
+        "n": 32,
+        "success": 0.84375,
+        "return_mean": 5.341354166666666
+      },
+      "hotel": {
+        "n": 29,
+        "success": 0.7586206896551724,
+        "return_mean": 4.5826436781609186
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "algo": "a2c",
+  "experiment": 9,
+  "config": {
+    "id": 9,
+    "name": "short_rollout",
+    "lr": 0.0007,
+    "gamma": 0.99,
+    "entropy": 0.01,
+    "value_coef": 0.5,
+    "hidden": 128,
+    "frames_per_batch": 64,
+    "grad_clip": 0.5,
+    "gae_lambda": 0.9
+  },
+  "frames": 30016,
+  "best_eval_return": 5.667333333333334,
+  "best_success": 0.95,
+  "seconds": 114.6,
+  "device": "cpu",
+  "env_version": "rider-delivery-4"
+}

@@ -1,0 +1,17 @@
+{
+  "id": 10,
+  "name": "vanilla_dqn_wide_net",
+  "lr": 0.001,
+  "gamma": 0.99,
+  "eps_start": 1.0,
+  "eps_end": 0.05,
+  "eps_anneal": 20000,
+  "buffer": 50000,
+  "batch": 128,
+  "target_every": 2000,
+  "double_dqn": false,
+  "hidden": 256,
+  "loss": "l2",
+  "grad_clip": 10.0,
+  "frames_per_batch": 256
+}

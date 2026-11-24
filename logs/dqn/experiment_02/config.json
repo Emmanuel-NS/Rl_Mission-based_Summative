@@ -1,0 +1,17 @@
+{
+  "id": 2,
+  "name": "slower_learning_rate",
+  "lr": 0.0003,
+  "gamma": 0.99,
+  "eps_start": 1.0,
+  "eps_end": 0.05,
+  "eps_anneal": 20000,
+  "buffer": 20000,
+  "batch": 64,
+  "target_every": 250,
+  "double_dqn": true,
+  "hidden": 128,
+  "loss": "smooth_l1",
+  "grad_clip": 10.0,
+  "frames_per_batch": 256
+}

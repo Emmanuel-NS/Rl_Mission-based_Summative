@@ -41,7 +41,7 @@ uv run python main.py --evaluate
 
 `--final` trains the best setting of each algorithm for 120,000 frames on two training seeds (logs in `logs/final/`, checkpoints in `models/final/`) and makes the run with the best validation return the `models/best_agent.pt` that `play.py` shows. `--evaluate` scores the random rider, the rule-following rider, all 40 sweep checkpoints and the long runs on 100 test deliveries (seeds 5000-5099) that no run used, writes `logs/test_evaluation.json`, and draws the report figures in `logs/figures/`: convergence, test returns, generalisation by condition, outcomes, behaviour, and validation against test. The same two commands are the last cells of `colab_train.ipynb`.
 
-Results (every sweep run, the long runs, the test scores by condition and the baselines) are written to `docs/RESULTS.md` by `--evaluate`. The report draft is built from the same files by `report/build_report.py`.
+Headline result on the 100 test deliveries: random legal actions -4.14 (2% success), the rule-following rider +6.54 (100%), DQN +6.24 (both seeds, 99-100%), PPO +6.21 (98-99%), A2C +6.00 (93-99%) and REINFORCE +2.79 (42% and 81%) after 120,000 frames. No long run handed over without a valid prescription. The full tables (all 40 sweep runs, the long runs, success by condition) are in `docs/RESULTS.md`, written by `--evaluate`; the report draft is built from the same files by `report/build_report.py`.
 
 ## Use the trained agent from another system
 

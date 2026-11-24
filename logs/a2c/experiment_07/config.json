@@ -1,0 +1,12 @@
+{
+  "id": 7,
+  "name": "loose_gradient_clip",
+  "lr": 0.0007,
+  "gamma": 0.99,
+  "entropy": 0.01,
+  "value_coef": 0.5,
+  "hidden": 128,
+  "frames_per_batch": 256,
+  "grad_clip": 5.0,
+  "gae_lambda": 0.95
+}

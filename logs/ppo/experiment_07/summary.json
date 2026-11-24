@@ -1,0 +1,25 @@
+{
+  "algo": "ppo",
+  "experiment": 7,
+  "config": {
+    "id": 7,
+    "name": "long_gae",
+    "lr": 0.0003,
+    "gamma": 0.99,
+    "clip": 0.2,
+    "entropy": 0.01,
+    "gae_lambda": 0.99,
+    "epochs": 4,
+    "minibatch": 256,
+    "value_coef": 0.5,
+    "hidden": 128,
+    "frames_per_batch": 1024,
+    "grad_clip": 0.5
+  },
+  "frames": 30720,
+  "best_eval_return": 1.7413333333333334,
+  "best_success": 0.5,
+  "seconds": 116.91,
+  "device": "cpu",
+  "env_version": "rider-delivery-4"
+}
