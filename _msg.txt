@@ -1,0 +1,8 @@
+﻿Add v4 results: 40 sweep runs, 8 long runs, held-out evaluation and report draft
+
+- Logs, figures, tables and checkpoints from the Colab run (30,000-frame sweep,
+  120,000-frame long runs on two seeds); best agent is DQN (gamma 0.9)
+- Test results: rule-following +6.54, DQN +6.24, PPO +6.21, A2C +6.00,
+  REINFORCE +2.79, random -4.14
+- docs/RESULTS.md and the report text written from these numbers
+- report builder reads the environment version from the code

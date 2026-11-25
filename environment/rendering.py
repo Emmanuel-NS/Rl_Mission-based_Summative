@@ -28,6 +28,7 @@ from environment.custom_env import (
     HAND,
     KNOCK,
     MED_NAMES,
+    N_ACTIONS,
     N_EDGES,
     P_BUILDING,
     P_ENTRANCE,
@@ -50,9 +51,30 @@ from environment.custom_env import (
     neighbour,
 )
 
-WIDTH, HEIGHT = 1280, 760
+WIDTH, HEIGHT = 1280, 820
 VIEW_H = 540
+CTRL_Y = VIEW_H + 8
+CTRL_H = 40
+CARD_Y = VIEW_H + 56
 FPS = 30
+SHORT_ACTIONS = (
+    "N",
+    "E",
+    "S",
+    "W",
+    "Cover",
+    "Wait",
+    "Enter",
+    "Collect",
+    "Park",
+    "Knock",
+    "Carry",
+    "Verify",
+    "Hand over",
+    "Scan",
+    "Walk back",
+    "Return",
+)
 SPRITES = Path(__file__).resolve().parent.parent / "assets" / "sprites"
 SIDEWALK_TOP = 404
 CURB_Y = 470
@@ -148,6 +170,12 @@ class DeliveryRenderer:
         self.pose_r: int | None = None
         self.pose_p: int | None = None
         self.patient_walking = False
+        # auto = agent drives; self = player clicks actions; paused = freeze
+        self.control_mode = "auto"
+        self._pending_action: int | None = None
+        self._mode_rects: dict[str, object] = {}
+        self._action_rects: list[tuple[object, int]] = []
+        self._last_env: FarumasiRiderEnv | None = None
         self.patient_phase = 0
         self._rain = []
         self._car_cache: dict[tuple[int, int], object] = {}
@@ -286,10 +314,65 @@ class DeliveryRenderer:
         pygame.display.flip()
         self.tick += 1
         self.clock.tick(FPS)
+        self._poll_events()
+        while self.control_mode == "paused":
+            # Keep the control bar live so Self Play / Auto Play highlight updates.
+            if self._last_env is not None and not self.walking and not self.moving:
+                self._frame(self._last_env, popup=self._static_popup(self._last_env), t=0.7)
+                pygame.display.flip()
+            self.clock.tick(FPS)
+            self._poll_events()
+
+    def _poll_events(self) -> None:
+        pygame = self._pygame
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 raise SystemExit(0)
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    self.control_mode = "auto" if self.control_mode == "paused" else "paused"
+                    self._pending_action = None
+                elif event.key == pygame.K_a:
+                    self.control_mode = "auto"
+                    self._pending_action = None
+                elif event.key == pygame.K_s:
+                    self.control_mode = "self"
+                    self._pending_action = None
+                elif event.key == pygame.K_p:
+                    self.control_mode = "paused"
+                    self._pending_action = None
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                self._handle_click(event.pos)
+
+    def _handle_click(self, pos) -> None:
+        for mode, rect in self._mode_rects.items():
+            if rect.collidepoint(pos):
+                self.control_mode = mode
+                self._pending_action = None
+                return
+        if self.control_mode != "self":
+            return
+        for rect, action in self._action_rects:
+            if rect.collidepoint(pos):
+                self._pending_action = action
+                return
+
+    def hold_frame(self, env: FarumasiRiderEnv) -> None:
+        """Redraw the current scene once (used while waiting for Self Play / Pause)."""
+        self._ensure()
+        self._last_env = env
+        self._frame(env, popup=self._static_popup(env), t=0.7)
+        self._present()
+
+    def wait_for_action(self, env: FarumasiRiderEnv) -> int | None:
+        """Block until the player picks a legal action, or the mode leaves Self Play."""
+        self._pending_action = None
+        while self.control_mode == "self" and self._pending_action is None:
+            self.hold_frame(env)
+        action = self._pending_action
+        self._pending_action = None
+        return action
 
     # ------------------------------------------------------------- scene plan
 
@@ -1153,11 +1236,38 @@ class DeliveryRenderer:
 
     def _hud(self, env: FarumasiRiderEnv) -> None:
         pygame = self._pygame
+        self._last_env = env
         pygame.draw.rect(self.screen, (226, 220, 208), pygame.Rect(0, VIEW_H, WIDTH, HEIGHT - VIEW_H))
         pygame.draw.rect(self.screen, (10, 61, 56), pygame.Rect(0, VIEW_H, WIDTH, 4))
-        self._action_card(env, pygame.Rect(16, 556, 408, 190))
-        self._nav_card(env, pygame.Rect(440, 556, 396, 190))
-        self._order_card(env, pygame.Rect(852, 556, 412, 190))
+        self._control_bar(env)
+        self._action_card(env, pygame.Rect(16, CARD_Y, 408, 210))
+        self._nav_card(env, pygame.Rect(440, CARD_Y, 396, 210))
+        self._order_card(env, pygame.Rect(852, CARD_Y, 412, 210))
+
+    def _control_bar(self, env: FarumasiRiderEnv) -> None:
+        pygame = self._pygame
+        bar = pygame.Rect(16, CTRL_Y, WIDTH - 32, CTRL_H)
+        pygame.draw.rect(self.screen, (244, 240, 232), bar, border_radius=10)
+        pygame.draw.rect(self.screen, (196, 189, 175), bar, width=1, border_radius=10)
+        self._mode_rects = {}
+        labels = (("self", "Self Play"), ("auto", "Auto Play"), ("paused", "Pause"))
+        x = bar.x + 10
+        for mode, label in labels:
+            active = self.control_mode == mode
+            rect = pygame.Rect(x, bar.y + 6, 120, CTRL_H - 12)
+            fill = GREEN if active else (255, 255, 255)
+            text = (255, 255, 255) if active else GREEN_DARK
+            pygame.draw.rect(self.screen, fill, rect, border_radius=8)
+            pygame.draw.rect(self.screen, GREEN_DARK, rect, width=2, border_radius=8)
+            self._text(label, rect.centerx, rect.centery, text, self._font(15, True), center=True)
+            self._mode_rects[mode] = rect
+            x += 128
+        hint = {
+            "auto": "Agent chooses each step",
+            "self": "Click a legal action below",
+            "paused": "Frozen - press Auto Play or Self Play to continue",
+        }[self.control_mode]
+        self._text(hint, x + 8, bar.y + 12, MUTED, self._font(14))
 
     def _card(self, rect) -> None:
         pygame = self._pygame
@@ -1166,6 +1276,10 @@ class DeliveryRenderer:
 
     def _action_card(self, env: FarumasiRiderEnv, rect) -> None:
         self._card(rect)
+        self._action_rects = []
+        if self.control_mode == "self":
+            self._self_play_actions(env, rect)
+            return
         label = env.action_label()
         colour = RED if env.last_event in FAIL_EVENTS else GREEN_DARK
         self._text("CURRENT ACTION", rect.x + 20, rect.y + 12, MUTED, self._font(14, True))
@@ -1181,6 +1295,38 @@ class DeliveryRenderer:
         self._text("TOTAL", rect.x + 214, rect.y + 142, MUTED, self._font(13, True))
         total_colour = GREEN_SOFT if env.return_so_far >= 0 else RED
         self._text(f"{env.return_so_far:+.2f}", rect.x + 214, rect.y + 156, total_colour, self._font(28, True))
+
+    def _self_play_actions(self, env: FarumasiRiderEnv, rect) -> None:
+        pygame = self._pygame
+        self._text("YOUR MOVE", rect.x + 16, rect.y + 10, MUTED, self._font(14, True))
+        self._text(env.current_place(), rect.x + 120, rect.y + 10, INK, self._font(14, True))
+        mask = env.action_mask()
+        cols = 4
+        pad = 8
+        top = rect.y + 36
+        cell_w = (rect.width - 24 - pad * (cols - 1)) / cols
+        cell_h = 36
+        for action in range(N_ACTIONS):
+            row, col = divmod(action, cols)
+            # two rows of 4 for ride/cover/wait/enter/collect..., then next rows
+            x = rect.x + 12 + col * (cell_w + pad)
+            y = top + row * (cell_h + 6)
+            if y + cell_h > rect.bottom - 8:
+                break
+            box = pygame.Rect(int(x), int(y), int(cell_w), cell_h)
+            legal = mask[action] > 0.5
+            if legal:
+                fill = (220, 252, 231)
+                border = GREEN
+                text = GREEN_DARK
+                self._action_rects.append((box, action))
+            else:
+                fill = (238, 236, 230)
+                border = (200, 196, 186)
+                text = (160, 160, 154)
+            pygame.draw.rect(self.screen, fill, box, border_radius=8)
+            pygame.draw.rect(self.screen, border, box, width=2, border_radius=8)
+            self._text(SHORT_ACTIONS[action], box.centerx, box.centery, text, self._font(13, True), center=True)
 
     def _nav_card(self, env: FarumasiRiderEnv, rect) -> None:
         pygame = self._pygame
